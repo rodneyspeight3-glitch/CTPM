@@ -1,0 +1,16 @@
+{
+  "name": "come-together-property-management",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js",
+    "test": "node --test tests/auth.test.cjs && node tests/browser.cjs"
+  },
+  "devDependencies": {
+    "playwright": "1.62.1"
+  },
+  "engines": {
+    "node": ">=24 <25"
+  }
+}
