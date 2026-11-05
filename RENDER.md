@@ -1,10 +1,16 @@
-# Deploy to an existing Render web service
+# Deploy to Render
 
-This app requires **Node.js 24**, one web service instance, and a persistent disk for the SQLite account/session database. Adding a persistent disk requires a paid Render service. Confirm the existing service and disk before changing settings; do not replace an unrelated app or its database. This repository intentionally does not include a Blueprint that would create a second service.
+This app requires **Node.js 24**, one web service instance, and a persistent disk for the SQLite account/session database. Adding a persistent disk requires a paid Render service. Confirm the existing service and disk before changing settings; do not replace an unrelated app or its database.
+
+## Blueprint setup
+
+The root `render.yaml` defines a Starter web service and a 1 GB persistent disk. In Render, create a Blueprint connected to `rodneyspeight3-glitch/CTPM` on branch `main`, then review the paid resources before applying it. Enter `ADMIN_EMAIL` and a unique 16–128 character `ADMIN_PASSWORD` when prompted; these values are not stored in the Blueprint. The Blueprint configures the build, startup, health check, Node version, and persistent database path.
+
+For an existing service, use the settings below and preserve its existing disk and database. Creating a new Blueprint can create a separate service; it does not automatically migrate an existing service or its accounts.
 
 ## Existing service settings
 
-- Repository: `rodneyspeight3-glitch/main`, branch `main`.
+- Repository: `rodneyspeight3-glitch/CTPM`, branch `main`.
 - Runtime: Node.
 - Build command: `npm ci --omit=dev`.
 - Start command: `npm start`.

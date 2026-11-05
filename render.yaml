@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: ctpm
+    runtime: node
+    repo: https://github.com/rodneyspeight3-glitch/CTPM
+    branch: main
+    plan: starter
+    numInstances: 1
+    buildCommand: npm ci --omit=dev
+    startCommand: npm start
+    healthCheckPath: /health
+    disk:
+      name: ctpm-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: NODE_VERSION
+        value: 24.22.1
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_PATH
+        value: /var/data/ctpm/app.sqlite
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
