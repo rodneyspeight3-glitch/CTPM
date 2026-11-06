@@ -183,6 +183,7 @@ async function main(){
  });
  server.listen(process.env.PORT===undefined?3000:Number(process.env.PORT),'0.0.0.0',()=>console.log('App running on port '+server.address().port));
  workspace.runPlans();
+ notices.startupCheck().catch(()=>console.warn('SMTP startup check: unavailable'));
  const delivery=setInterval(()=>notices.drain().catch(()=>{}),5000);delivery.unref();
  const reminders=setInterval(()=>{try{workspace.runPlans();notices.reminders();experience.listingAlerts();finance.syncPayments({role:'admin'}).catch(()=>{});for(const b of finance.budgets({role:'admin'})){if(b.spent_cents>b.amount_cents)notices.staffNotice({kind:'budget',title:'A property is over its monthly expense budget',link:'/dashboard#reports',key:'budget:'+b.property_id+':'+b.period});}}catch{}},3600000);reminders.unref();
  for(const signal of ['SIGTERM','SIGINT'])process.on(signal,()=>{clearInterval(delivery);clearInterval(reminders);server.close(()=>{auth.db.close();process.exit(0);});});

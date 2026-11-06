@@ -16,7 +16,7 @@ The application uses Nodemailer and the existing SQLite email outbox. No email s
 
 Keep `ALLOW_PAID_INTEGRATIONS` unset or `false`. SMTP does not require that legacy flag and never activates Stripe or Resend. When mail.com is selected but incomplete, the app does not fall back to another provider. Never place a mailbox password in source control, chat, Management settings, or public agent profiles. Check that SMTP is enabled for the mailbox at mail.com; use its application-specific password if required by the account's two-factor settings.
 
-Use the dedicated **company** mailbox as both login and sender. The app deliberately rejects mismatched SMTP login and From addresses to avoid using a personal login behind a public alias. Sender display name is **Come Together Property Management**. The company address remains visible in From, envelope, and message headers. TLS encrypts the SMTP connection; it does not hide sender identity or provide end-to-end message encryption. No personal mailbox address is used or embedded in the application.
+Use the dedicated **company** mailbox as both login and sender. The app deliberately rejects mismatched SMTP login and From addresses to avoid using a personal login behind a public alias. Sender display name is **Come Together Property Management (No Reply)**. The company address remains visible in From, envelope, and message headers. TLS encrypts the SMTP connection; it does not hide sender identity or provide end-to-end message encryption. No personal mailbox address is used or embedded in the application.
 
 ## Automatic messages
 
@@ -38,10 +38,18 @@ Newer application progress supersedes older pending progress. The worker checks 
 
 Admin → **Built-in services / Service connections** shows configuration completeness, safe delivery counts, and sanitized error codes. **Check SMTP connection** tests TLS and login without sending an email. **Retry recent failed email** queues at most twenty unexpired failures from the last seven days; suppression checks run again. Agent and tenant accounts cannot inspect configuration or trigger these actions. No secret values or raw SMTP errors are exposed by the app.
 
-After configuring the company mailbox, sign in as administrator and check SMTP. Then test signup and application updates in a separate staging environment using addresses you control. Automated tests use local transports and artificial records; they do not establish that mail.com has accepted the owner's real credentials or that recipient inboxes will accept delivery. Do not upload fake identity documents to production for an email test. Read replies in the company mailbox; inbound SMTP replies are not imported into portal conversations.
+After configuring the company mailbox, sign in as administrator and check SMTP. Then test signup and application updates in a separate staging environment using addresses you control. Automated tests use local transports and artificial records; they do not establish that mail.com has accepted the owner's real credentials or that recipient inboxes will accept delivery. Do not upload fake identity documents to production for an email test. Manual replies and bounces may still reach the authorized company mailbox; inbound email is not imported into portal conversations.
 
 ## Background photography
 
 The page background uses a locally bundled photograph of real buildings, moving continuously left to right with a linear CSS loop. Mirrored duplicate tiles align the seams. It remains behind the white page areas, supports pause/reduced-motion preferences, and makes no browser requests to an image service.
 
 Photo source: [Unsplash building photograph](https://images.unsplash.com/photo-1486406146926-c627a92ad1ab), used under the [Unsplash License](https://unsplash.com/license). The image is decorative and does not represent an available property.
+
+## No-reply policy
+
+All automated delivery passes through a shared formatter, including welcome, verification, recovery, general notifications, application receipts, progress updates, and document requests. Existing queued mail receives the same policy when delivered. The sender display name includes **(No Reply)**, every body says **Please do not reply**, and help links point to portal messages and the public management contact section. The footer is added once, including during retries.
+
+The app sets `Auto-Submitted: auto-generated` and `X-Auto-Response-Suppress: All` to discourage automatic reply loops, preserving application unsubscribe headers. It keeps the authenticated company address and envelope for legitimate delivery and bounces. It does not invent `noreply@realtyagent.com`, redirect replies to an unrelated mailbox, or block a person from manually replying. A literal no-reply sender needs its own provider-authorized mailbox and matching credentials under the existing dedicated-mailbox rule.
+
+When SMTP is configured, startup performs a TLS/login check without sending a test email. The check never blocks website startup. Outbox delivery waits during the check, and failures pause delivery with sanitized status codes. The admin service connections page shows the last successful connection check; a complete configuration alone is not proof of successful authentication or inbox delivery.

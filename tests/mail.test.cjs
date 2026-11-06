@@ -21,7 +21,7 @@ test('mail.com uses encrypted authenticated SMTP and a dedicated company sender 
  const u=await unit();try{
   assert.equal(u.mailer.configured(),true);await u.mailer.verify();await u.mailer.send({to:'recipient@example.test',subject:'Test notice',text:'Synthetic message',key:'stable-message'});
   const config=u.options[0];assert.equal(config.host,'smtp.mail.com');assert.equal(config.port,465);assert.equal(config.secure,true);assert.equal(config.tls.rejectUnauthorized,true);assert.equal(config.tls.minVersion,'TLSv1.2');assert.equal(config.disableFileAccess,true);assert.equal(config.disableUrlAccess,true);
-  assert.equal(u.messages[0].payload.from.address,'company@example.test');assert.deepEqual(u.messages[0].payload.envelope,{from:'company@example.test',to:['recipient@example.test']});assert.match(u.messages[0].mime,/From: Come Together Property Management <company@example.test>/);assert.ok(!u.messages[0].mime.includes(process.env.SMTP_PASSWORD));
+  assert.equal(u.messages[0].payload.from.address,'company@example.test');assert.deepEqual(u.messages[0].payload.envelope,{from:'company@example.test',to:['recipient@example.test']});assert.equal(u.messages[0].payload.from.name,'Come Together Property Management (No Reply)');assert.match(u.messages[0].mime.replace(/\r?\n[ \t]+/g,' '),/From:.*No Reply/);assert.equal(u.messages[0].payload.headers['Auto-Submitted'],'auto-generated');assert.equal(u.messages[0].payload.headers['X-Auto-Response-Suppress'],'All');assert.match(u.messages[0].payload.text,/Please do not reply/);assert.match(u.messages[0].payload.text,/https:\/\/ctpm.example.test\/dashboard#messages/);assert.ok(!u.messages[0].mime.includes(process.env.SMTP_PASSWORD));
   await u.mailer.send({to:'recipient@example.test',subject:'Test notice',text:'Synthetic message',key:'stable-message'});assert.equal(u.messages[1].payload.messageId,u.messages[0].payload.messageId);
   process.env.SMTP_PORT='587';await u.mailer.verify();assert.equal(u.options[1].secure,false);assert.equal(u.options[1].requireTLS,true);
   process.env.SMTP_PORT='25';assert.equal(u.mailer.configured(),false);await assert.rejects(u.mailer.send({to:'recipient@example.test',subject:'Test',text:'Test',key:'bad-port'}));
@@ -59,4 +59,24 @@ test('new signup welcomes and email setup routes remain role-protected when SMTP
  const app=await fixture({SMTP_ENABLED:'false'});const post=(url,data,cookie)=>fetch(app.base+url,{method:'POST',headers:{Origin:app.base,'Content-Type':'application/json',Cookie:cookie||''},body:JSON.stringify(data)});
  try{const r=await post('/api/signup',{name:'New Resident',email:'signup@example.test',password:'A synthetic new password 123456789',confirmation:'A synthetic new password 123456789',consent:true});assert.equal(r.status,201);const cookie=r.headers.get('set-cookie').split(';')[0],notices=await(await fetch(app.base+'/api/notifications',{headers:{Cookie:cookie}})).json();assert.ok(notices.notifications.some(n=>n.title==='Welcome to Come Together'));assert.equal((await post('/api/integrations/email/check',{},cookie)).status,403);assert.equal((await post('/api/integrations/email/check',{})).status,401);assert.equal((await post('/api/application-email/unsubscribe',{token:'invalid'})).status,400);assert.equal((await fetch(app.base+'/application-email')).status,200);}
  finally{await app.cleanup();}
+});
+test('all queued mail kinds get one no-reply footer and automatic-response headers, including pre-existing queued messages',async()=>{
+ const u=await unit();try{
+  for(const kind of ['verification','recovery','notification','application-receipt','application-progress','application-document'])u.notices.enqueue({to:'recipient@example.test',subject:'Test '+kind,body:'A message queued before this delivery-format change.',kind,key:'no-reply:'+kind});
+  await u.notices.drain();assert.equal(u.messages.length,6);for(const {payload,mime} of u.messages){assert.equal(payload.from.name,'Come Together Property Management (No Reply)');assert.equal(payload.from.address,'company@example.test');assert.equal(payload.headers['Auto-Submitted'],'auto-generated');assert.equal(payload.headers['X-Auto-Response-Suppress'],'All');assert.equal((payload.text.match(/Please do not reply to this email\./g)||[]).length,1);assert.match(payload.text,/https:\/\/ctpm.example.test\/#contact/);assert.match(mime,/Auto-Submitted: auto-generated/);assert.equal(payload.replyTo,undefined);assert.ok(!mime.includes('noreply@'));
+  }
+ }finally{u.cleanup();}
+});
+test('legacy delivery keeps its authorized sender address and applies the shared no-reply policy',async()=>{
+ const u=await unit(),fetchBefore=global.fetch,keys=['ALLOW_PAID_INTEGRATIONS','RESEND_API_KEY','EMAIL_FROM'],before=Object.fromEntries(keys.map(k=>[k,process.env[k]]));
+ try{
+  process.env.SMTP_ENABLED='false';process.env.ALLOW_PAID_INTEGRATIONS='true';process.env.RESEND_API_KEY='synthetic-not-real';process.env.EMAIL_FROM='Company <company@example.test>';const payloads=[];global.fetch=async(url,options)=>{assert.equal(url,'https://api.resend.com/emails');payloads.push(JSON.parse(options.body));return {ok:true,json:async()=>({id:'synthetic-message'})};};
+  const {createNotifications}=require('../lib/notifications'),legacy=createNotifications(u.db);legacy.enqueue({to:'recipient@example.test',subject:'Test',body:'A legacy queued message',key:'legacy-no-reply'});await legacy.drain();assert.equal(payloads.length,1);assert.equal(payloads[0].from,'"Come Together Property Management (No Reply)" <company@example.test>');assert.equal(payloads[0].headers['Auto-Submitted'],'auto-generated');assert.match(payloads[0].text,/Please do not reply/);
+ }finally{global.fetch=fetchBefore;for(const[k,v]of Object.entries(before))if(v===undefined)delete process.env[k];else process.env[k]=v;u.cleanup();}
+});
+test('startup SMTP verification sends no message and reports only safe failure codes',async()=>{
+ const u=await unit();try{
+  const ready=await u.notices.startupCheck();assert.equal(ready.status,'verified');assert.equal(u.messages.length,0);assert.ok(u.notices.deliveryStatus(u.admin).smtp.lastVerifiedAt);
+  u.state.error=Object.assign(Error('Must not expose '+process.env.SMTP_PASSWORD),{code:'EAUTH'});const failed=await u.notices.startupCheck();assert.deepEqual(failed,{status:'failed',code:'AUTHENTICATION_FAILED'});assert.ok(u.notices.deliveryStatus(u.admin).smtp.retryAfter);u.notices.enqueue({to:'recipient@example.test',subject:'Held',body:'Held while auth is failing',key:'startup-hold'});await u.notices.drain();assert.equal(u.db.prepare("SELECT status FROM email_outbox WHERE event_key='startup-hold'").get().status,'Pending');assert.equal(u.messages.length,0);
+ }finally{u.cleanup();}
 });
