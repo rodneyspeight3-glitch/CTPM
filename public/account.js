@@ -21,6 +21,7 @@ $('#password-form').onsubmit=async event=>{event.preventDefault();const data=Obj
  const {user}=await api('/api/session');currentUser=user;
  $('#add-property').hidden=user.role==='tenant';
  $('#applications-nav').hidden=user.role==='tenant';
+ $('#settings-nav').hidden=user.role==='tenant';
  document.querySelectorAll('[data-staff-only]').forEach(el=>el.hidden=user.role==='tenant');
  for(const id of ['#new-request','#notice-request','#request-page-button'])$(id).hidden=user.role!=='tenant';
  if(user.role!=='tenant')$('#requests .page-heading p:not(.eyebrow)').textContent='Track tenant requests and share updates with residents.';
@@ -33,7 +34,8 @@ $('#password-form').onsubmit=async event=>{event.preventDefault();const data=Obj
   $('.page-heading .eyebrow').textContent='YOUR MANAGEMENT WORKSPACE';
   $('#overview h1').textContent='Welcome back, '+user.name.split(' ')[0]+'.';
   $('#overview .page-heading p:not(.eyebrow)').textContent=user.role==='admin'?'Bring your team and residents together. Manage account access and explore your property portfolio.':'Your property portfolio and resident resources, together in one workspace.';
-  $('#new-request').hidden=true;$('#payment').hidden=true;
+  $('#new-request').hidden=true;
  }
- await Promise.all([loadHomes(),loadRequests(),loadApplications()]);
+ await Promise.all([loadHomes(),loadRequests(),loadApplications(),loadSettings(true)]);
+ go(location.hash.slice(1)||'overview',false);
 }catch(error){toast(error.message);}})();

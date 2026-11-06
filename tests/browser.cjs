@@ -60,7 +60,7 @@ const {fixture}=require('./fixture.cjs');
  assert.equal(await page.locator('[data-cancel-request]').count(),1);
  await page.locator('[data-page="overview"]').click();
  await page.locator('#payment').click();
- assert.match(await page.locator('#modal-content').textContent(),/connects a secure payment provider/);
+ await page.locator('#modal-content').filter({hasText:'Management has not added payment details yet.'}).waitFor();
  await page.keyboard.press('Escape');
  await page.locator('#toast').evaluate(el=>el.style.display='none');
  await page.locator('#payment').blur();

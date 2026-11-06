@@ -28,9 +28,17 @@ Each available property has an application form for name, email, phone, preferre
 
 Agents and admins use **Applications** to privately review applicant contact details, filter by status, and save Submitted, Reviewing, Contacted, or Closed with a staff note. Tenants and unauthenticated visitors cannot read applications. Applications remain available to staff after a listing closes. Staff must contact applicants directly; status changes do not send notifications or create tenant accounts.
 
+## Management contact and payment details
+
+Agents and administrators can update **Management settings** at any time. Save the company name, contact email/phone, payment heading, HTTPS payment portal link, account holder, bank/provider, account/reference details, and instructions. Contact information is public on the vacancies page. Payment details are shown only to signed-in users through **Rent & payments**. This stores and displays instructions; payments and receipts remain with the linked provider. Never store provider login passwords, card data, or API keys in these fields.
+
+Changes are persistent in SQLite and recorded with the editing staff account and time. A stale edit is rejected instead of overwriting another staff member's update; use **Reload saved settings** to load the current version. The **Contact management** buttons open saved email/phone links. Before contact or payment information has been saved, the app explains what is missing.
+
+All portal pages have `/#page` links that survive reload and browser back/forward navigation. Staff-only pages are guarded in the UI and API. Notifications show current maintenance/application totals with links to the relevant pages. Resources contain expandable guidance; lease uploads, email recovery, and external payment processing remain separate integrations.
+
 ## Validate
 
-`npm test` starts isolated servers with temporary databases and randomized credentials. It verifies API authorization, incorrect-role denial, admin account creation, persistence across restart, session revocation, password changes, login rate limiting, cross-origin rejection, browser login for all roles, property creation, tenant request isolation, validation, maintenance status updates/cancellation, image loading, vacancy filtering, anonymous application submission, staff review, legacy schema migration, stale-listing rejection, duplicate handling, rate limiting, and responsive layouts. Test-only inventory fixtures include four available homes and an occupied property; no fixtures are inserted into production. Test databases and test users do not touch the application database.
+`npm test` starts isolated servers with temporary databases and randomized credentials. It verifies API authorization, incorrect-role denial, admin account creation, persistence across restart, session revocation, password changes, login rate limiting, cross-origin rejection, browser login for all roles, property creation, tenant request isolation, validation, maintenance status updates/cancellation, image loading, vacancy filtering, anonymous application submission, staff review, legacy schema migration, stale-listing rejection, duplicate handling, rate limiting, production startup/secure cookies, staff-managed payment settings, every page navigation/reload, and responsive layouts. Test-only inventory fixtures include four available homes and an occupied property; no fixtures are inserted into production. Test databases and test users do not touch the application database.
 
 Browser tests use `/usr/bin/chromium`; set `CHROMIUM_PATH` for another installed Chromium binary.
 
@@ -40,6 +48,6 @@ See [RENDER.md](RENDER.md) for deploying to an **existing** Render service with 
 
 ## Product scope and assets
 
-Three sample listings remain clearly marked. Management-created properties and maintenance requests are stored on the server. Listing photos are illustrations. Payments, email password recovery, company contact information, lease documents, general inquiry delivery, and email/push notifications are not configured.
+Three sample listings remain clearly marked. Management-created properties and maintenance requests are stored on the server. Listing photos are illustrations. Agents/admins configure contact and payment instructions in Management settings. Payment processing and receipts are handled by the linked provider. Email password recovery, lease document uploads, in-app general inquiry delivery, and email/push notifications are not configured.
 
 Property images come from the public Bedimcode responsive real estate example: https://github.com/bedimcode/responsive-real-state-website/tree/main/assets/img. Replace them with company-owned photos before launch. Assets are served locally.

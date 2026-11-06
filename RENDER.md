@@ -28,6 +28,14 @@ In the existing service's Render Environment settings, set `ADMIN_EMAIL` to the 
 
 After signing in as Admin, use **Manage accounts** to create Tenant, Agent, or Admin accounts. Share initial credentials securely; email delivery is not configured. Users can change their password in **My account**. Remove the bootstrap password from Render's Environment settings after verifying the initial administrator account. Back up the disk and maintain a recovery process before relying on it for production accounts.
 
+## Automatic deployments
+
+The Blueprint sets `autoDeployTrigger: checksPass` for `main`. `.github/workflows/test.yml` installs Node.js 24 and Chromium and runs all API, production, and browser checks on pushes and pull requests. After this Blueprint setting is synced to the existing Render service, pushes to `main` deploy automatically when GitHub checks pass. Keep Blueprint auto-sync and the repository connection enabled in Render. An existing service with automatic deployments disabled needs the Blueprint change applied once; committing YAML alone does not prove the live setting changed.
+
+`GET /health` checks the SQLite connection and reports `revision` from Render's injected `RENDER_GIT_COMMIT`. Use that full commit SHA to verify that the intended release is live. Local environments return a null revision. GitHub push success is separate from GitHub checks passing, Render building, and live health verification.
+
+For direct Render API management from a Codex environment, configure `RENDER_API_KEY` securely for `api.render.com` and allow `api.render.com`, `render.com`, and `ctpm.onrender.com` in its network settings. This credential belongs in the Codex environment configuration, not the application repository or tenant-facing Management settings. Never paste credentials into chat. API access is not required for Render's GitHub-triggered deployments once connected.
+
 ## Release and verify
 
 Only deploy after the persistent disk and environment variables are configured. Deploy the latest commit from the existing service's dashboard. Check `/health`, open `/login`, and sign in using the administrator account. Create a tenant and an agent, verify their role-specific landing pages, confirm neither can access `/api/admin/users`, and sign out. Requests to `/` without a session must redirect to `/login`.
@@ -42,4 +50,4 @@ Use a test application to verify the staff-only Applications queue and status up
 
 ## Remaining product integrations
 
-Authentication, account management, property creation, and maintenance tracking use the persistent SQLite database. Staff can create properties and update tenant requests through the portal. Existing accounts and sessions are preserved by additive table creation on startup; keep the same disk and DATABASE_PATH. Browser-local demo requests from older versions are not imported. Three clearly marked sample listings remain, and photos are illustrative. Payments, email password recovery, lease documents, general inquiry delivery, and email/push notifications are not connected.
+Authentication, account management, property creation, and maintenance tracking use the persistent SQLite database. Staff can create properties and update tenant requests through the portal. Existing accounts and sessions are preserved by additive table creation on startup; keep the same disk and DATABASE_PATH. Browser-local demo requests from older versions are not imported. Three clearly marked sample listings remain, and photos are illustrative. Contact and payment instructions are configured by agents/admins in Management settings. Actual payment processing and receipts remain with the linked provider. Email password recovery, lease document uploads, general inquiry delivery, and email/push notifications are not connected.

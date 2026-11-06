@@ -4,11 +4,13 @@ const path = require('node:path');
 const {createAuth}=require('./lib/auth');
 const {createManagement}=require('./lib/management');
 const {createVacancies}=require('./lib/vacancies');
+const {createSettings}=require('./lib/settings');
 const root=path.join(__dirname,'public');
 async function main(){
  const auth=await createAuth(process.env.DATABASE_PATH||path.join(__dirname,'.data','app.sqlite'));
  const management=createManagement(auth.db);
  const vacancies=createVacancies(auth.db);
+ const settings=createSettings(auth.db);
  const json=(res,status,data)=>{res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(data));};
  const redirect=(res,to)=>{res.writeHead(302,{Location:to,'Cache-Control':'no-store'}).end();};
  async function body(req){
@@ -22,7 +24,10 @@ async function main(){
   if(process.env.NODE_ENV==='production')res.setHeader('Strict-Transport-Security','max-age=31536000');
   try{
    const pathname=new URL(req.url,'http://localhost').pathname;
-   if(pathname==='/health'&&req.method==='GET')return json(res,200,{status:'ok'});
+   if(pathname==='/health'&&req.method==='GET'){
+    auth.db.prepare('SELECT 1').get();
+    return json(res,200,{status:'ok',revision:/^[a-f0-9]{40}$/.test(process.env.RENDER_GIT_COMMIT||'')?process.env.RENDER_GIT_COMMIT:null});
+   }
    const user=auth.userFor(req);
    if(pathname.startsWith('/api/')){
     if(req.method==='POST'){
@@ -37,9 +42,14 @@ async function main(){
      res.setHeader('Set-Cookie',result.cookie);return json(res,200,{user:result.user});
     }
     if(pathname==='/api/vacancies'&&req.method==='GET')return json(res,200,{properties:vacancies.listVacancies()});
+    if(pathname==='/api/company'&&req.method==='GET')return json(res,200,{company:settings.publicContact()});
     const vacancyApplication=pathname.match(/^\/api\/vacancies\/(\d+)\/applications$/);
     if(vacancyApplication&&req.method==='POST')return json(res,200,vacancies.apply(vacancyApplication[1],await body(req),req.socket.remoteAddress));
     if(!user)return json(res,401,{error:'Please sign in to continue.'});
+    if(pathname==='/api/settings'){
+     if(req.method==='GET')return json(res,200,{settings:settings.get()});
+     if(req.method==='POST')return json(res,200,{settings:settings.update(user,await body(req))});
+    }
     if(pathname==='/api/applications'&&req.method==='GET')return json(res,200,{applications:vacancies.listApplications(user)});
     const applicationUpdate=pathname.match(/^\/api\/applications\/(\d+)\/status$/);
     if(applicationUpdate&&req.method==='POST')return json(res,200,{application:vacancies.updateApplication(user,applicationUpdate[1],await body(req))});

@@ -16,7 +16,23 @@ async function loadRequests(){
  try{requests=(await api('/api/requests')).requests;renderRequests();renderDashboard();$('#requests-error').textContent='';}
  catch(error){$('#requests-error').textContent=error.message;}
 }
-function go(page){document.querySelectorAll('.page').forEach(el=>el.hidden=el.id!==page);document.querySelectorAll('.nav-item').forEach(el=>el.classList.toggle('active',el.dataset.page===page));$('#crumb').textContent=({overview:'Dashboard',homes:'Find a home',requests:'Maintenance',documents:'Resources',team:'Manage accounts',applications:'Applications',account:'My account'})[page];if(page==='overview'){loadHomes().catch(error=>toast(error.message));loadRequests();if(currentUser?.role!=='tenant')loadApplications();}if(page==='applications')loadApplications();if(page==='requests')loadRequests();if(page==='homes')loadHomes().catch(error=>toast(error.message));if(page==='team')window.loadTeam?.();window.scrollTo({top:0,behavior:'smooth'});}
+function go(page,updateHash=true){
+ if(typeof currentUser==='undefined'||!currentUser)return;
+ const labels={overview:'Dashboard',homes:'Find a home',requests:'Maintenance',documents:'Resources',team:'Manage accounts',applications:'Applications',settings:'Management settings',account:'My account'};
+ if(!Object.hasOwn(labels,page)||(page==='team'&&currentUser.role!=='admin')||(['applications','settings'].includes(page)&&currentUser.role==='tenant')){page='overview';history.replaceState(null,'','#overview');}
+ document.querySelectorAll('.page').forEach(el=>el.hidden=el.id!==page);
+ document.querySelectorAll('.nav-item').forEach(el=>el.classList.toggle('active',el.dataset.page===page));
+ $('#crumb').textContent=labels[page];
+ if(updateHash&&location.hash!=='#'+page)history.pushState(null,'','#'+page);
+ if(page==='overview'){loadHomes().catch(error=>toast(error.message));loadRequests();if(currentUser.role!=='tenant')loadApplications();}
+ if(page==='applications')loadApplications();
+ if(page==='requests')loadRequests();
+ if(page==='homes')loadHomes().catch(error=>toast(error.message));
+ if(page==='settings')loadSettings(true).catch(error=>{$('#settings-error').textContent=error.message;});
+ if(page==='team')window.loadTeam?.();
+ window.scrollTo({top:0,behavior:'smooth'});
+}
+window.addEventListener('hashchange',()=>go(location.hash.slice(1)||'overview',false));
 document.querySelectorAll('[data-page]').forEach(el=>el.onclick=()=>go(el.dataset.page));document.querySelectorAll('[data-go]').forEach(el=>el.onclick=()=>go(el.dataset.go));
 function card(p){return `<article class="property-card"><div class="property-image"><img src="/images/home-${p.image}.jpg" alt="Illustrative photograph for ${escapeHTML(p.name)}" loading="lazy"><span class="property-badge">${escapeHTML(p.type)}</span></div><div class="property-body"><div class="property-top"><h3>${escapeHTML(p.name)}</h3><strong>${money(p.price)}<small> / mo</small></strong></div><p class="location">⌖ ${escapeHTML(p.area)}${p.sample?' · Sample listing':''}</p><div class="property-footer"><span>${p.beds} beds</span><span>•</span><span>${p.baths} baths</span><span>•</span><span>${escapeHTML(p.size)} sq ft</span><button data-property="${p.id}" aria-label="View ${escapeHTML(p.name)}">→</button></div><div class="listing-actions">${p.sample?'<span>Sample · not accepting applications</span>':`<span class="availability-label">${p.available?'Available':'Unavailable'}</span>${p.available?`<a class="text-link" href="/vacancies?property=${p.id}">Apply for this home →</a>`:''}${typeof currentUser!=='undefined'&&['agent','admin'].includes(currentUser?.role)?`<button class="text-link" data-set-availability="${p.id}" data-available="${!p.available}">Mark ${p.available?'unavailable':'available'}</button>`:''}`}</div></div></article>`;}
 function renderHomes(){const query=$('#search').value.toLowerCase(),beds=$('#beds').value;const filtered=properties.filter(p=>(p.name+' '+p.area).toLowerCase().includes(query)&&(beds==='all'||p.beds===Number(beds)));$('#all-homes').innerHTML=filtered.map(card).join('');$('#empty-homes').hidden=filtered.length>0;}
@@ -58,7 +74,7 @@ document.addEventListener('click',async e=>{
 $('#add-property').onclick=()=>{
  if(!['agent','admin'].includes(currentUser?.role))return;
  openModal(`<p class="eyebrow">YOUR PROPERTY PORTFOLIO</p><h2>Add a property.</h2><form id="property-form"><label>Property name<input name="name" required maxlength="100"></label><label>Neighborhood<input name="area" required maxlength="100"></label><label>Street address<input name="address" required maxlength="250"></label><div class="form-columns"><label>Monthly rent ($)<input name="price" type="number" min="0" max="1000000" step="0.01" required></label><label>Bedrooms<input name="beds" type="number" min="0" max="50" step="1" required></label><label>Bathrooms<input name="baths" type="number" min="0.5" max="50" step="0.5" required></label><label>Square feet<input name="size" type="number" min="1" max="1000000" step="1" required></label></div><label>Property type<select name="type"><option value="SINGLE-FAMILY HOME">Single-family home</option><option value="APARTMENT">Apartment</option><option value="CONDO">Condo</option><option value="TOWNHOUSE">Townhouse</option></select></label><label>Availability<select name="available"><option value="false">Unavailable — keep off dashboard</option><option value="true">Available — publish and accept applications</option></select></label><label>Illustrative photo<select name="image"><option value="1">House exterior</option><option value="2">Living space</option><option value="3">Home interior</option></select></label><p class="form-note">Available properties appear on the dashboard and public vacancies page with an application form. Photos are illustrations.</p><p id="property-error" role="alert"></p><button class="button green">Save property →</button></form>`);
- $('#property-form').onsubmit=async event=>{event.preventDefault();const button=event.target.querySelector('button');button.disabled=true;const data=Object.fromEntries(new FormData(event.target));for(const key of ['price','beds','baths','size','image'])data[key]=Number(data[key]);data.available=data.available==='true';try{await api('/api/properties',{method:'POST',body:JSON.stringify(data)});await loadHomes();closeModal();go('homes');toast('Property added.');}catch(error){$('#property-error').textContent=error.message;}finally{button.disabled=false;}};
+ $('#property-form').onsubmit=async event=>{event.preventDefault();const button=event.target.querySelector('button');button.disabled=true;const data=Object.fromEntries(new FormData(event.target));for(const key of ['price','beds','baths','size','image'])data[key]=Number(data[key]);data.available=data.available==='true';try{await api('/api/properties',{method:'POST',body:JSON.stringify(data)});closeModal();$('#search').value='';$('#beds').value='all';go('homes');toast('Property added.');}catch(error){$('#property-error').textContent=error.message;}finally{button.disabled=false;}};
 };
 let toastTimer;function toast(message){$('#toast').textContent=message;$('#toast').style.display='block';clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').style.display='none',4000);}
 $('#today').textContent=new Intl.DateTimeFormat('en-US',{month:'short',day:'numeric',year:'numeric',timeZone:'America/New_York'}).format(new Date());$('#year').textContent=new Date().getFullYear();
@@ -71,6 +87,7 @@ function renderDashboard(){
  $('#portfolio-count').textContent=properties.filter(p=>!p.sample).length;
  $('#maintenance-open').textContent=requests.filter(r=>['Submitted','In progress'].includes(r.status)).length;
  $('#applications-pending').textContent=applications.filter(a=>a.status!=='Closed').length;
+ $('#notifications i').hidden=!requests.some(r=>['Submitted','In progress'].includes(r.status))&&!applications.some(a=>a.status!=='Closed');
 }
 document.addEventListener('click',async event=>{
  const button=event.target.closest('[data-set-availability]');if(!button)return;

@@ -32,3 +32,5 @@ select('#vacancy-search').oninput=renderVacancies;
 select('#refresh-vacancies').onclick=loadVacancies;
 document.addEventListener('click',event=>{const button=event.target.closest('[data-apply]');if(!button)return;const p=vacancies.find(p=>p.id===Number(button.dataset.apply));if(p)applyFor(p);});
 (async()=>{if(!await loadVacancies())return;const id=new URLSearchParams(location.search).get('property');if(!id)return;const p=vacancies.find(p=>p.id===Number(id));if(p)applyFor(p);else select('#vacancies-error').textContent='That property is no longer available. Browse the current vacancies below.';})();
+
+(async()=>{try{const {company}=await vacancyAPI('/api/company');const footer=select('#public-contact');footer.textContent=company.companyName;for(const [text,href] of [[company.contactEmail,company.contactEmail?'mailto:'+company.contactEmail:''],[company.contactPhone,company.contactPhone?'tel:'+company.contactPhone.replace(/[^+\d]/g,''):'']]){if(!text)continue;const a=document.createElement('a');a.textContent=text;a.href=href;footer.append(a);}}catch{select('#public-contact').textContent='Contact management through your resident portal.';}})();

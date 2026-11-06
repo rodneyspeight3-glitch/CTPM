@@ -4,6 +4,7 @@ services:
     runtime: node
     repo: https://github.com/rodneyspeight3-glitch/CTPM
     branch: main
+    autoDeployTrigger: checksPass
     plan: starter
     numInstances: 1
     buildCommand: npm ci --omit=dev
