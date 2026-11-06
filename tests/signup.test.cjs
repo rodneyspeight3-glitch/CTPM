@@ -7,7 +7,8 @@ test('tenant registration creates only tenant access; shared login detects roles
  const post=(path,data,cookie,origin)=>call(path,{method:'POST',data,cookie,origin});
  const credentials={name:'New tenant <test>',email:'new-tenant@example.test',password:'A private tenant passphrase 123',confirmation:'A private tenant passphrase 123',consent:true};
  try{
-  for(const path of ['/','/home','/signup'])assert.equal((await call(path)).status,200,path);
+  for(const path of ['/','/home'])assert.equal((await call(path)).status,200,path);
+  const signupAlias=await call('/signup');assert.equal(signupAlias.status,302);assert.equal(signupAlias.headers.get('location'),'/login?mode=signup');
   const gateway=await call('/dashboard?newProperty=1');assert.equal(gateway.status,302);assert.equal(new URL(gateway.headers.get('location'),app.base).searchParams.get('next'),'/dashboard?newProperty=1');
   assert.equal((await post('/api/signup',credentials,null,'https://evil.example')).status,403);
   for(const [i,changes] of [{confirmation:'wrong'},{consent:false},{password:'short',confirmation:'short'},{email:'invalid'},{name:' '}].entries())assert.equal((await post('/api/signup',{...credentials,email:'invalid-'+i+'@example.test',...changes})).status,400);

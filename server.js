@@ -6,10 +6,11 @@ const {createManagement}=require('./lib/management');
 const {createVacancies}=require('./lib/vacancies');
 const {createSettings}=require('./lib/settings');
 const {createOperations}=require('./lib/operations');
+const {seedShowcase}=require('./lib/showcase');
 const root=path.join(__dirname,'public');
 async function main(){
  const auth=await createAuth(process.env.DATABASE_PATH||path.join(__dirname,'.data','app.sqlite'));
- const management=createManagement(auth.db);
+ const management=createManagement(auth.db);seedShowcase(auth.db);
  const vacancies=createVacancies(auth.db);
  const settings=createSettings(auth.db);
  const operations=createOperations(auth.db);
@@ -53,6 +54,7 @@ async function main(){
      res.setHeader('Set-Cookie',result.cookie);return json(res,201,{user:result.user});
     }
     if(pathname==='/api/vacancies'&&req.method==='GET')return json(res,200,{properties:vacancies.listVacancies()});
+    if(pathname==='/api/showcase'&&req.method==='GET')return json(res,200,{properties:management.showcase()});
     if(pathname==='/api/company'&&req.method==='GET')return json(res,200,{company:settings.publicContact()});
     const vacancyApplication=pathname.match(/^\/api\/vacancies\/(\d+)\/applications$/);
     if(vacancyApplication&&req.method==='POST')return json(res,200,vacancies.apply(vacancyApplication[1],await body(req),req.socket.remoteAddress));
@@ -98,8 +100,8 @@ async function main(){
     }
     const conversationClose=pathname.match(/^\/api\/conversations\/(\d+)\/close$/);
     if(conversationClose&&req.method==='POST')return json(res,200,operations.closeConversation(user,conversationClose[1]));
-    const propertyEdit=pathname.match(/^\/api\/properties\/(\d+)\/(edit|archive)$/);
-    if(propertyEdit&&req.method==='POST')return json(res,200,{property:propertyEdit[2]==='edit'?management.editProperty(user,propertyEdit[1],await body(req)):management.archiveProperty(user,propertyEdit[1],await body(req))});
+    const propertyEdit=pathname.match(/^\/api\/properties\/(\d+)\/(edit|archive|delete)$/);
+    if(propertyEdit&&req.method==='POST')return json(res,200,{property:propertyEdit[2]==='edit'?management.editProperty(user,propertyEdit[1],await body(req)):propertyEdit[2]==='delete'?management.deleteProperty(user,propertyEdit[1]):management.archiveProperty(user,propertyEdit[1],await body(req))});
     const accountEdit=pathname.match(/^\/api\/admin\/users\/(\d+)$/);
     if(accountEdit&&req.method==='POST')return json(res,200,{user:await auth.updateUser(user,accountEdit[1],await body(req))});
     if(pathname==='/api/settings'){
@@ -135,7 +137,8 @@ async function main(){
    if(pathname==='/dashboard'&&!user)return redirect(res,'/login?next='+encodeURIComponent('/dashboard'+requestURL.search));
    if(pathname==='/index.html')return redirect(res,user?'/dashboard':'/login');
    if(['/login','/login.html','/signup','/signup.html'].includes(pathname)&&user)return redirect(res,dashboardTarget(requestURL.searchParams.get('next')));
-   const relative=pathname==='/'||pathname==='/home'?'/home.html':pathname==='/dashboard'?'/index.html':pathname==='/login'?'/login.html':pathname==='/signup'?'/signup.html':pathname==='/vacancies'?'/vacancies.html':pathname;
+   if(pathname==='/signup'||pathname==='/signup.html'){const params=new URLSearchParams(requestURL.search);params.set('mode','signup');return redirect(res,'/login?'+params.toString());}
+   const relative=pathname==='/'||pathname==='/home'?'/home.html':pathname==='/dashboard'?'/index.html':pathname==='/login'?'/login.html':pathname==='/vacancies'?'/vacancies.html':pathname;
    const file=path.resolve(root,'.'+decodeURIComponent(relative));
    if(!file.startsWith(root+path.sep))return json(res,403,{error:'Forbidden.'});
    fs.readFile(file,(error,data)=>{

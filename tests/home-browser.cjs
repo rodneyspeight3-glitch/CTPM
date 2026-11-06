@@ -2,12 +2,12 @@ const {chromium}=require('playwright');
 const assert=require('node:assert/strict');
 const {fixture}=require('./fixture.cjs');
 (async()=>{
- const app=await fixture();let browser;
+ const app=await fixture({SEED_SHOWCASE_PROPERTIES:'1'});let browser;
  try{
   browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',args:['--no-sandbox']});
   const page=await browser.newPage({viewport:{width:1440,height:1000}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.goto(app.base);await page.getByRole('heading',{name:'A place to call home. A team you can count on.'}).waitFor();
-  await page.locator('#vacancy-list .empty-state').waitFor();assert.equal(await page.locator('#home-sample-properties .property-card').count(),6);assert.equal(await page.locator('#home-sample-properties [data-apply]').count(),0);
+  await page.locator('#vacancy-list .empty-state').waitFor();await page.locator('#home-showcase-properties .property-card').first().waitFor();assert.equal(await page.locator('#home-showcase-properties .property-card').count(),6);assert.equal(await page.locator('#home-showcase-properties [data-apply]').count(),0);
   assert.equal(await page.getByRole('link',{name:/add a property/i}).count(),0);
   await page.locator('.home-header').getByRole('link',{name:'Sign in',exact:true}).click();await page.locator('#login-form').waitFor();
   assert.equal(await page.locator('#login-form [name="role"]').count(),0);
@@ -26,6 +26,6 @@ const {fixture}=require('./fixture.cjs');
   await tenant.locator('#signup-form [name="confirmation"]').fill('A long new tenant password 123');await tenant.locator('#create-tenant').click();await tenant.locator('#account-name').filter({hasText:'New tenant <test>'}).waitFor({state:'attached'});assert.equal(new URL(tenant.url()).pathname,'/dashboard');assert.equal(await tenant.locator('#team-nav').isVisible(),false);assert.equal(await tenant.locator('#add-property').isVisible(),false);
   await tenant.locator('#logout').click();await tenant.waitForURL('**/login');await tenant.locator('#login-form [name="email"]').fill('new-signup@example.test');await tenant.locator('#login-form [name="password"]').fill('A long new tenant password 123');await tenant.locator('#sign-in').click();await tenant.locator('#account-role').filter({hasText:'Tenant account'}).waitFor({state:'attached'});
   assert.equal(await tenant.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);assert.deepEqual(errors,[]);
-  console.log('PASS: public home, six labeled sample properties, staff-only dashboard property creation, live listing/application, tenant registration, automatic role detection, and mobile layouts.');
+  console.log('PASS: public home, six manageable showcase homes, staff-only dashboard property creation, live listing/application, tenant registration, automatic role detection, and mobile layouts.');
  }finally{await browser?.close();await app.cleanup();}
 })().catch(error=>{console.error(error);process.exit(1);});
