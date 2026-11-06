@@ -15,6 +15,11 @@ const {createSignatures}=require('./lib/signatures');
 const {createExperience}=require('./lib/experience');
 const {createAgents}=require('./lib/agents');
 const {createServiceRoutes}=require('./lib/service-routes');
+const {createFreeAccess}=require('./lib/free-access');
+const {createPortfolioTools}=require('./lib/portfolio-tools');
+const {createWorkspace}=require('./lib/workspace');
+const {createHandover}=require('./lib/handover');
+const {createHandoverRoutes}=require('./lib/handover-routes');
 const root=path.join(__dirname,'public');
 async function main(){
  const auth=await createAuth(process.env.DATABASE_PATH||path.join(__dirname,'.data','app.sqlite'));
@@ -25,6 +30,7 @@ async function main(){
  const notices=createNotifications(auth.db),accounts=createAccountServices(auth.db,notices);
  resident=createResidentServices(auth.db,notices);
  const finance=createFinance(auth.db,notices),signatures=createSignatures(auth.db,notices),experience=createExperience(auth.db,notices),agents=createAgents(auth.db);
+ const freeAccess=createFreeAccess(auth.db,operations,notices),portfolio=createPortfolioTools(auth.db,management,resident),workspace=createWorkspace(auth.db,notices),handover=createHandover(auth.db,operations,freeAccess,settings);
  const json=(res,status,data)=>{res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(data));};
  const redirect=(res,to)=>{res.writeHead(302,{Location:to,'Cache-Control':'no-store'}).end();};
  function dashboardTarget(value){try{const target=new URL(value,'https://ctpm.local');if(target.origin==='https://ctpm.local'&&target.pathname==='/dashboard')return target.pathname+target.search+target.hash;}catch{}return '/dashboard';}
@@ -34,9 +40,10 @@ async function main(){
   const bytes=await rawBody(req,maxSize);try{const parsed=JSON.parse(bytes.toString('utf8'));if(!parsed||Array.isArray(parsed)||typeof parsed!=='object')throw Error();return parsed;}catch{const e=new Error('Invalid request.');e.status=400;throw e;}
  }
  const services=createServiceRoutes({accounts,notices,resident,finance,signatures,experience,agents,body,rawBody,json});
+ const handoverRoutes=createHandoverRoutes({vacancies,freeAccess,portfolio,workspace,handover,notices,body,json});
  const server=http.createServer(async(req,res)=>{
   res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('X-Frame-Options','DENY');res.setHeader('Referrer-Policy','same-origin');
-  res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'");
+  res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob:; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'");
   if(process.env.NODE_ENV==='production')res.setHeader('Strict-Transport-Security','max-age=31536000');
   try{
    const requestURL=new URL(req.url,'http://localhost'),pathname=requestURL.pathname;
@@ -45,6 +52,7 @@ async function main(){
     return json(res,200,{status:'ok',revision:/^[a-f0-9]{40}$/.test(process.env.RENDER_GIT_COMMIT||'')?process.env.RENDER_GIT_COMMIT:null});
    }
    const user=auth.userFor(req);
+   res.on('finish',()=>{if(req.method==='POST'&&res.statusCode>=200&&res.statusCode<300&&['admin','agent'].includes(user?.role)&&!/^\/api\/(login|logout|password|account\/)/.test(pathname)){try{handover.audit(user,'POST '+pathname);}catch{}}});
    const photoRead=pathname.match(/^\/property-photos\/(\d+)$/);
    if(photoRead&&['GET','HEAD'].includes(req.method)){const photo=management.photo(user,photoRead[1]);res.writeHead(200,{'Content-Type':photo.mime,'Cache-Control':'private, no-store'});return res.end(req.method==='HEAD'?undefined:photo.data);}
    if(/^\/(agent-photos|gallery-photos)\/\d+$/.test(pathname)&&await services(req,res,requestURL,user))return;
@@ -55,6 +63,7 @@ async function main(){
      const expected=process.env.APP_ORIGIN||(req.headers.host?`${process.env.NODE_ENV==='production'?'https':'http'}://${req.headers.host}`:'');
      if(!origin||origin!==expected||req.headers['sec-fetch-site']==='cross-site')return json(res,403,{error:'Request origin is not allowed.'});
     }
+    if(await handoverRoutes(req,res,requestURL,user))return;
     if(await services(req,res,requestURL,user))return;
     if(pathname==='/api/login'&&req.method==='POST'){
      const result=await auth.login(await body(req),req);
@@ -116,7 +125,7 @@ async function main(){
     const conversationClose=pathname.match(/^\/api\/conversations\/(\d+)\/close$/);
     if(conversationClose&&req.method==='POST')return json(res,200,operations.closeConversation(user,conversationClose[1]));
     const propertyEdit=pathname.match(/^\/api\/properties\/(\d+)\/(edit|archive|delete)$/);
-    if(propertyEdit&&req.method==='POST'){const property=propertyEdit[2]==='edit'?management.editProperty(user,propertyEdit[1],await body(req)):propertyEdit[2]==='delete'?management.deleteProperty(user,propertyEdit[1]):management.archiveProperty(user,propertyEdit[1],await body(req));experience.listingAlerts();return json(res,200,{property});}
+    if(propertyEdit&&req.method==='POST'){if(!['admin','agent'].includes(user.role))return json(res,403,{error:'Agent or administrator access is required.'});const property=propertyEdit[2]==='edit'?portfolio.saveProperty(user,propertyEdit[1],await body(req,14500000)):propertyEdit[2]==='delete'?management.deleteProperty(user,propertyEdit[1]):management.archiveProperty(user,propertyEdit[1],await body(req));experience.listingAlerts();return json(res,200,{property});}
     const accountEdit=pathname.match(/^\/api\/admin\/users\/(\d+)$/);
     if(accountEdit&&req.method==='POST')return json(res,200,{user:await auth.updateUser(user,accountEdit[1],await body(req))});
     if(pathname==='/api/settings'){
@@ -136,7 +145,7 @@ async function main(){
     if(pathname==='/api/session'&&req.method==='GET')return json(res,200,{user});
     if(pathname==='/api/properties'){
      if(req.method==='GET')return json(res,200,{properties:management.listProperties(user)});
-     if(req.method==='POST'){const property=management.addProperty(user,await body(req));experience.listingAlerts();return json(res,201,{property});}
+     if(req.method==='POST'){if(!['admin','agent'].includes(user.role))return json(res,403,{error:'Agent or administrator access is required.'});const property=portfolio.saveProperty(user,null,await body(req,14500000));experience.listingAlerts();return json(res,201,{property});}
     }
     if(pathname==='/api/requests'){
      if(req.method==='GET')return json(res,200,{requests:management.listRequests(user)});
@@ -158,20 +167,21 @@ async function main(){
    if(pathname==='/index.html')return redirect(res,user?'/dashboard':'/login');
    if(['/login','/login.html','/signup','/signup.html'].includes(pathname)&&user)return redirect(res,dashboardTarget(requestURL.searchParams.get('next')));
    if(pathname==='/signup'||pathname==='/signup.html'){const params=new URLSearchParams(requestURL.search);params.set('mode','signup');return redirect(res,'/login?'+params.toString());}
-   const relative=pathname==='/'||pathname==='/home'?'/home.html':pathname==='/dashboard'?'/index.html':pathname==='/login'?'/login.html':pathname==='/vacancies'?'/vacancies.html':pathname==='/agents'?'/agents.html':pathname==='/account-access'?'/account-access.html':pathname;
+   const relative=pathname==='/'||pathname==='/home'?'/home.html':pathname==='/dashboard'?'/index.html':pathname==='/login'?'/login.html':pathname==='/vacancies'?'/vacancies.html':pathname==='/agents'?'/agents.html':pathname==='/account-access'?'/account-access.html':pathname==='/apply'?'/apply.html':pathname==='/application-status'?'/application-status.html':pathname;
    const file=path.resolve(root,'.'+decodeURIComponent(relative));
    if(!file.startsWith(root+path.sep))return json(res,403,{error:'Forbidden.'});
    fs.readFile(file,(error,data)=>{
     if(error)return json(res,404,{error:'Not found.'});
-    res.setHeader('Content-Type',({'.html':'text/html; charset=utf-8','.css':'text/css','.js':'text/javascript','.svg':'image/svg+xml','.jpg':'image/jpeg','.png':'image/png'})[path.extname(file)]||'application/octet-stream');
+    res.setHeader('Content-Type',({'.html':'text/html; charset=utf-8','.css':'text/css','.js':'text/javascript','.webmanifest':'application/manifest+json','.svg':'image/svg+xml','.jpg':'image/jpeg','.png':'image/png'})[path.extname(file)]||'application/octet-stream');
     res.setHeader('Cache-Control',path.extname(file)==='.html'?'no-store':'public, max-age=300');
     res.end(req.method==='HEAD'?undefined:data);
    });
   }catch(error){if(!res.headersSent)json(res,error.status||500,{error:error.status?error.message:'Something went wrong. Please try again.'});}
  });
  server.listen(process.env.PORT===undefined?3000:Number(process.env.PORT),'0.0.0.0',()=>console.log('App running on port '+server.address().port));
+ workspace.runPlans();
  const delivery=setInterval(()=>notices.drain().catch(()=>{}),5000);delivery.unref();
- const reminders=setInterval(()=>{try{notices.reminders();experience.listingAlerts();finance.syncPayments({role:'admin'}).catch(()=>{});for(const b of finance.budgets({role:'admin'})){if(b.spent_cents>b.amount_cents)notices.staffNotice({kind:'budget',title:'A property is over its monthly expense budget',link:'/dashboard#reports',key:'budget:'+b.property_id+':'+b.period});}}catch{}},3600000);reminders.unref();
+ const reminders=setInterval(()=>{try{workspace.runPlans();notices.reminders();experience.listingAlerts();finance.syncPayments({role:'admin'}).catch(()=>{});for(const b of finance.budgets({role:'admin'})){if(b.spent_cents>b.amount_cents)notices.staffNotice({kind:'budget',title:'A property is over its monthly expense budget',link:'/dashboard#reports',key:'budget:'+b.property_id+':'+b.period});}}catch{}},3600000);reminders.unref();
  for(const signal of ['SIGTERM','SIGINT'])process.on(signal,()=>{clearInterval(delivery);clearInterval(reminders);server.close(()=>{auth.db.close();process.exit(0);});});
 }
 main().catch(()=>{console.error('Startup failed. Check database access and administrator configuration.');process.exit(1);});

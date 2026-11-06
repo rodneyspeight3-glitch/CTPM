@@ -36,7 +36,7 @@ const {fixture}=require('./fixture.cjs');
   const savedInstructions=await page.evaluate(async()=> (await api('/api/settings')).settings.paymentInstructions);assert.equal(savedInstructions,'Updated rent instructions by agent.');
   assert.equal(await page.locator('#team-nav').isVisible(),false);
   await page.locator('[data-page="account"]').click();
-  await page.locator('[name="currentPassword"]').fill(app.credentials.password);await page.locator('[name="newPassword"]').fill('Changed agent password 123456');await page.locator('[name="confirmation"]').fill('Changed agent password 123456');await page.locator('#password-form button').click();await page.waitForURL('**/login');
+  await page.locator('#password-form [name="currentPassword"]').fill(app.credentials.password);await page.locator('[name="newPassword"]').fill('Changed agent password 123456');await page.locator('[name="confirmation"]').fill('Changed agent password 123456');await page.locator('#password-form button').click();await page.waitForURL('**/login');
   await signIn('tenant');assert.equal(await page.locator('#settings-nav').isVisible(),false);
   await page.goto(app.base+'/#settings');await page.locator('#account-name').filter({hasText:'Test tenant'}).waitFor({state:'attached'});await page.locator('#overview').waitFor();assert.equal(new URL(page.url()).hash,'#overview');
   await page.locator('#payment').click();await page.locator('#modal-content').getByText('Updated rent instructions by agent.',{exact:true}).waitFor();

@@ -28,7 +28,7 @@ test('public vacancy applications and staff reviews enforce availability and pri
   for(const changes of [{name:' '},{email:'invalid'},{phone:'abc'},{moveIn:'2000-01-01'},{moveIn:'2099-02-30'},{occupants:0},{occupants:'2'},{message:'x'.repeat(2001)},{consent:false}])assert.equal((await post(url,null,{...applicant,...changes})).status,400);
   assert.equal((await post('/api/vacancies/'+closedId+'/applications',null,applicant)).status,409);
   assert.equal((await post('/api/vacancies/999999/applications',null,applicant)).status,409);
-  const receipt=await post(url,null,applicant);assert.equal(receipt.status,200);assert.deepEqual(Object.keys(await receipt.json()),['message']);
+  const receipt=await post(url,null,applicant);assert.equal(receipt.status,200);assert.deepEqual(Object.keys(await receipt.json()),['message','reference','trackingUrl']);
   assert.equal((await post(url,null,{...applicant,name:'Changed name'})).status,200);
   assert.equal((await call('/api/applications')).status,401);
   assert.equal((await call('/api/applications',{cookie:cookies.tenant})).status,403);

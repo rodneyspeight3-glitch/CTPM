@@ -4,8 +4,8 @@ const serviceEmpty=(title,body)=>`<div class="empty-state"><h3>${escapeHTML(titl
 const serviceDate=value=>new Intl.DateTimeFormat(undefined,{dateStyle:'medium',timeStyle:'short'}).format(new Date(value));
 const serviceToday=()=>new Date().toISOString().slice(0,10);
 const serviceStaff=()=>['admin','agent'].includes(currentUser?.role);
-function serviceVerifyCard(){return `<div class="notice-card service-callout"><p class="eyebrow">YOUR SECURE SPACE</p><h3>Verify your email to continue.</h3><p>We confirm your email before showing applicant records, booking viewings, taking payments, or signing leases.</p><button class="button green" data-service-go="account">Open My account →</button></div>`;}
-function serviceRequireVerified(){if(currentUser.emailVerified)return true;openModal(serviceVerifyCard());return false;}
+function serviceVerifyCard(){return `<div class="notice-card service-callout"><p class="eyebrow">YOUR SECURE SPACE</p><h3>Confirm your identity to continue.</h3><p>Ask management to confirm your resident identity before booking viewings or signing a lease. Use your private receipt to claim an application.</p><button class="button green" data-service-go="account">Open My account →</button></div>`;}
+function serviceRequireVerified(){if(currentUser.emailVerified||currentUser.identityConfirmed)return true;openModal(serviceVerifyCard());return false;}
 function serviceModal(title,fields,submit,buttonLabel='Save changes'){
  openModal(`<p class="eyebrow">COME TOGETHER</p><h2>${escapeHTML(title)}</h2><form id="service-form">${fields}<p id="service-form-error" role="alert"></p><button class="button green" type="submit">${escapeHTML(buttonLabel)} →</button></form>`);
  const form=$('#service-form');form.onsubmit=async event=>{event.preventDefault();const button=form.querySelector('[type=submit]');button.disabled=true;try{await submit(Object.fromEntries(new FormData(form)),form);if(form.isConnected)closeModal();}catch(error){if(form.isConnected)$('#service-form-error').textContent=error.message;}finally{button.disabled=false;}};return form;

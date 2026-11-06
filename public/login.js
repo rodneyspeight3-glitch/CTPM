@@ -1,7 +1,7 @@
 (()=>{
  const content=document.querySelector('#auth-content'),tabs=[document.querySelector('#signin-tab'),document.querySelector('#signup-tab')];
  let submitting=false;
- function destination(){try{const url=new URL(new URLSearchParams(location.search).get('next')||'/dashboard',location.origin);if(url.origin===location.origin&&url.pathname==='/dashboard'){const pages=['overview','homes','saved','requests','leases','ledger','messages','documents','applications','team','settings','account','my-applications','tours','signatures','searches','contractors','reports','agent-profiles','integrations'];const hash=url.hash||(pages.includes(location.hash.slice(1))?location.hash:'');return url.pathname+url.search+hash;}}catch{}return '/dashboard';}
+ function destination(){try{const url=new URL(new URLSearchParams(location.search).get('next')||'/dashboard',location.origin);if(url.origin===location.origin&&url.pathname==='/dashboard'){const pages=['overview','homes','saved','requests','leases','ledger','messages','documents','applications','team','settings','account','my-applications','tours','signatures','searches','contractors','reports','agent-profiles','integrations','workspace','community','library','help','handover'];const hash=url.hash||(pages.includes(location.hash.slice(1))?location.hash:'');return url.pathname+url.search+hash;}}catch{}return '/dashboard';}
  function render(mode,update=true){
   mode=mode==='signup'?'signup':'signin';const email=content.querySelector('[name="email"]')?.value||'';
   content.replaceChildren(document.querySelector('#'+mode+'-template').content.cloneNode(true));content.classList.toggle('signup-content',mode==='signup');content.setAttribute('aria-labelledby',mode+'-tab');

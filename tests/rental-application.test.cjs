@@ -22,14 +22,14 @@ test('complete applications and uploads validate atomically, remain private, sur
   const list=(await get('/api/applications',cookies.agent)).applications;assert.equal(list.length,1);assert.equal(list[0].document_count,2);assert.equal('details' in list[0],false);assert.equal('documents' in list[0],false);
   const id=list[0].id,fullPath='/api/applications/'+id;
   const detail=(await get(fullPath,admin)).application;
-  assert.equal(detail.form_version,3);assert.equal(detail.details.monthlyIncomeCents,450025);assert.equal(detail.details.creditScore,700);assert.equal(detail.details.petDetails,'One indoor cat <test>');assert.equal('data' in detail.documents[0],false);
+  assert.equal(detail.form_version,4);assert.equal(detail.details.monthlyIncomeCents,450025);assert.equal(detail.details.creditScore,700);assert.equal(detail.details.petDetails,'One indoor cat <test>');assert.equal('data' in detail.documents[0],false);
   const download='/api/application-documents/'+detail.documents[0].id+'/download',remove=download.replace('/download','/delete');
   for(const path of [fullPath,download]){assert.equal((await call(path)).status,401);assert.equal((await call(path,cookies.tenant)).status,403);}
   assert.equal((await post(remove,cookies.tenant,{reason:'No longer needed'})).status,403);
   assert.equal((await post(remove,admin,{reason:'No longer needed'},'https://evil.example')).status,403);
   for(const staff of [admin,cookies.agent]){const r=await call(download,staff);assert.equal(r.status,200);assert.equal(r.headers.get('content-type'),'application/pdf');assert.match(r.headers.get('content-disposition'),/^attachment;/);assert.match(r.headers.get('cache-control'),/no-store/);assert.equal(r.headers.get('x-content-type-options'),'nosniff');assert.deepEqual(Buffer.from(await r.arrayBuffer()),pdf);}
   assert.equal((await call(download,cookies.agent,'HEAD')).status,200);
-  const repeated=await post(url,null,rentalApplication({name:'Overwritten',documents:[badDoc({name:'replacement.pdf'}),data.documents[1]]}));assert.equal(repeated.status,200);assert.deepEqual(Object.keys(await repeated.json()),['message']);
+  const repeated=await post(url,null,rentalApplication({name:'Overwritten',documents:[badDoc({name:'replacement.pdf'}),data.documents[1]]}));assert.equal(repeated.status,200);assert.deepEqual(Object.keys(await repeated.json()),['message','reference','trackingUrl']);
   const unchanged=(await get(fullPath,admin)).application;assert.equal(unchanged.name,data.name);assert.equal(unchanged.documents.length,2);assert.equal(unchanged.documents[0].name,'test-income.pdf');
   // Optional income/pet answers and optional document uploads can be omitted entirely.
   assert.equal((await post(url,null,rentalApplication({email:'optional@example.test',otherIncome:undefined,hasPets:undefined,petDetails:undefined}))).status,200);
