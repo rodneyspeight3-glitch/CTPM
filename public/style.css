@@ -20,3 +20,21 @@ dialog p{overflow-wrap:anywhere}.public-shell footer a{overflow-wrap:anywhere}
 .listing-filters{display:flex;align-items:flex-end;gap:18px;flex-wrap:wrap;margin-bottom:22px}.listing-filters label{flex:1;min-width:150px}.listing-filters button{padding-bottom:12px}.results-caption{color:var(--muted);font-size:12px;margin-bottom:20px}.property-detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:18px 0}.property-detail-grid p{background:var(--paper);padding:12px;border-radius:5px}.share-link{display:grid;gap:10px;margin:20px 0}.share-link input{font-size:12px}#saved-error{color:#a13a32;font-size:12px;line-height:1.7}@media(max-width:480px){.listing-filters{flex-direction:column;align-items:stretch}.listing-filters label{min-width:0}.listing-filters button{align-self:flex-start}}
 
 .amenity-tags{display:flex;flex-wrap:wrap;gap:7px;margin:12px 0}.amenity-tags span{font-size:10px;line-height:1.6;padding:5px 9px;background:#eef2e9;color:#46614c;border-radius:20px}.listing-description{font-size:12px;line-height:1.8;color:var(--muted);margin:12px 0;overflow-wrap:anywhere}.property-long-description{white-space:pre-wrap;margin-top:20px}.danger-link{color:#a13a32}.danger-button{background:#8c332c;color:#fff}#delete-property-error{color:#a13a32;font-size:12px;line-height:1.8}
+
+/* Rental applications and private staff review. */
+#application-modal{width:760px;max-width:calc(100vw - 28px)}
+#vacancy-application-form fieldset{display:grid;gap:16px;border:1px solid var(--line);border-radius:8px;padding:18px;margin:0;min-width:0}
+#vacancy-application-form legend{font-weight:700;padding:0 8px;font-size:16px}
+.application-instructions{padding:18px;background:#f0f4ec;border-radius:8px;margin:18px 0;line-height:1.7}
+.application-instructions h3{font-size:16px;margin-bottom:8px}.application-instructions p+p{margin-top:10px}
+#vacancy-application-form input[type=file]{max-width:100%;font-size:12px;padding:10px}
+#vacancy-application-form .form-columns{align-items:start}
+#application-content,#modal-content{overflow-wrap:anywhere}
+.application-review-section{border-top:1px solid var(--line);margin-top:22px;padding-top:18px}
+.application-facts{margin:14px 0}.application-facts>div{margin:12px 0}.application-facts dt{font-size:12px;color:#657067}.application-facts dd{margin:4px 0 0;white-space:pre-wrap;line-height:1.6}
+.application-document{padding:16px 0;border-bottom:1px solid var(--line)}.application-document p{margin:8px 0}.application-document details{margin-top:12px}.application-document summary,.document-audit summary{cursor:pointer;font-size:12px;font-weight:700}.document-audit{margin:15px 0}.document-audit p{margin-top:12px}.danger-button{background:#fff0eb;color:#8b3023;border:1px solid #e3c2ba}
+#review-application-form{margin-top:24px}.document-error{color:#9b3426}
+@media(max-width:600px){#vacancy-application-form .form-columns{grid-template-columns:1fr}#vacancy-application-form fieldset{padding:12px}.application-instructions{padding:12px}}
+
+#vacancy-application-form .application-instructions{margin:0}
+@media(max-width:600px){#application-modal{padding:28px 22px}}

@@ -1,3 +1,4 @@
+const {fillRentalApplication}=require('./rental-fixtures.cjs');
 const {chromium}=require('playwright');
 const assert=require('node:assert/strict');
 const {fixture}=require('./fixture.cjs');
@@ -17,8 +18,7 @@ const {fixture}=require('./fixture.cjs');
   await page.locator('#property-form [name="available"]').selectOption('true');await page.locator('#property-form button').click();await page.locator('#all-homes h3').filter({hasText:'Community House <test>'}).waitFor();
   await page.locator('.top-actions').getByRole('link',{name:'Public home'}).click();await page.locator('#vacancy-list h3').filter({hasText:'Community House <test>'}).waitFor();assert.equal(await page.locator('#available-total').textContent(),'1');
   await page.locator('#vacancy-list').getByRole('button',{name:'Apply for this home'}).click();await page.locator('#vacancy-application-form').waitFor();
-  for(const [key,value] of Object.entries({name:'Prospective Resident',email:'prospect@example.test',phone:'202-555-0100',moveIn:'2099-01-01',occupants:'2'}))await page.locator('#vacancy-application-form [name="'+key+'"]').fill(value);
-  await page.locator('#vacancy-application-form [name="consent"]').check();await page.getByRole('button',{name:'Submit application'}).click();await page.getByRole('heading',{name:'Application received.'}).waitFor();assert.equal(new URL(page.url()).pathname,'/');await page.locator('#close-application').click();
+  await fillRentalApplication(page,{name:'Prospective Resident',email:'prospect@example.test'});await page.getByRole('button',{name:'Submit application'}).click();await page.getByRole('heading',{name:'Application received.'}).waitFor();assert.equal(new URL(page.url()).pathname,'/');await page.locator('#close-application').click();
   await page.screenshot({path:'/tmp/ctpm-public-home.png',fullPage:true});await page.setViewportSize({width:390,height:844});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);await page.screenshot({path:'/tmp/ctpm-public-home-mobile.png',fullPage:true});
   const tenant=await browser.newPage({viewport:{width:390,height:844}});tenant.on('pageerror',e=>errors.push(e.message));await tenant.goto(app.base+'/signup');await tenant.locator('.account-notice summary').click();await tenant.getByText('Creating an account does not approve an application',{exact:false}).waitFor();
   for(const [key,value] of Object.entries({name:'New tenant <test>',email:'new-signup@example.test',password:'A long new tenant password 123',confirmation:'A different long password 123'}))await tenant.locator('#signup-form [name="'+key+'"]').fill(value);

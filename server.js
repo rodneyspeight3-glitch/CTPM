@@ -57,7 +57,7 @@ async function main(){
     if(pathname==='/api/showcase'&&req.method==='GET')return json(res,200,{properties:management.showcase()});
     if(pathname==='/api/company'&&req.method==='GET')return json(res,200,{company:settings.publicContact()});
     const vacancyApplication=pathname.match(/^\/api\/vacancies\/(\d+)\/applications$/);
-    if(vacancyApplication&&req.method==='POST')return json(res,200,vacancies.apply(vacancyApplication[1],await body(req),req.socket.remoteAddress));
+    if(vacancyApplication&&req.method==='POST'){vacancies.beginApplication(vacancyApplication[1],req.socket.remoteAddress);return json(res,200,vacancies.apply(vacancyApplication[1],await body(req,14500000)));}
     if(!user)return json(res,401,{error:'Please sign in to continue.'});
     if(pathname==='/api/saved-homes'&&req.method==='GET')return json(res,200,{properties:management.savedHomes(user)});
     const saveHome=pathname.match(/^\/api\/properties\/(\d+)\/save$/);
@@ -108,6 +108,11 @@ async function main(){
      if(req.method==='GET')return json(res,200,{settings:settings.forUser(user)});
      if(req.method==='POST')return json(res,200,{settings:settings.update(user,await body(req))});
     }
+    const applicationDocument=pathname.match(/^\/api\/application-documents\/(\d+)\/(download|delete)$/);
+    if(applicationDocument&&['GET','HEAD'].includes(req.method)&&applicationDocument[2]==='download'){const doc=vacancies.document(user,applicationDocument[1]),ext={'application/pdf':'pdf','image/png':'png','image/jpeg':'jpg'}[doc.mime];res.writeHead(200,{'Content-Type':doc.mime,'Content-Disposition':`attachment; filename="application-document-${doc.id}.${ext}"`,'Cache-Control':'private, no-store'});return res.end(req.method==='HEAD'?undefined:doc.data);}
+    if(applicationDocument&&req.method==='POST'&&applicationDocument[2]==='delete')return json(res,200,vacancies.removeDocument(user,applicationDocument[1],await body(req)));
+    const fullApplication=pathname.match(/^\/api\/applications\/(\d+)$/);
+    if(fullApplication&&req.method==='GET')return json(res,200,{application:vacancies.application(user,fullApplication[1])});
     if(pathname==='/api/applications'&&req.method==='GET')return json(res,200,{applications:vacancies.listApplications(user)});
     const applicationUpdate=pathname.match(/^\/api\/applications\/(\d+)\/status$/);
     if(applicationUpdate&&req.method==='POST')return json(res,200,{application:vacancies.updateApplication(user,applicationUpdate[1],await body(req))});

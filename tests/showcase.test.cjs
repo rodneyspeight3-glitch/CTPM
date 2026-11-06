@@ -1,3 +1,4 @@
+const {rentalApplication}=require('./rental-fixtures.cjs');
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const {fixture}=require('./fixture.cjs');
@@ -25,7 +26,7 @@ test('showcase homes are persistent editable inventory; staff deletion is perman
   assert.equal((await post('/api/properties/'+one.id+'/delete',cookies.agent,{})).status,200);
   assert.equal((await post('/api/properties/'+two.id+'/delete',admin,{})).status,200);
   assert.equal((await get('/api/showcase')).properties.length,3);
-  const application={name:'Applicant',email:'applicant@example.test',phone:'202-555-0123',moveIn:'2099-01-01',occupants:1,message:'Interested',consent:true};
+  const application=rentalApplication({name:'Applicant',email:'applicant@example.test',phone:'202-555-0123',moveIn:'2099-01-01',occupants:1,message:'Interested',consent:true});
   assert.equal((await post('/api/vacancies/'+convert.id+'/applications',null,application)).status,200);
   assert.equal((await post('/api/properties/'+convert.id+'/delete',admin,{})).status,409);
   await app.stop();base=await app.start();homes=(await get('/api/properties',admin)).properties;

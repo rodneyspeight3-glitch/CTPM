@@ -73,3 +73,9 @@ The public home page no longer contains staff property-creation controls, includ
 This release adds property description, amenities, and showcase flags plus a migration marker. Six showcase records are initialized once against the existing administrator account. Deleted records are not restored by restart or redeployment. Agents/admins can delete unlinked homes; properties with resident/application history must be archived. Verify changes using the existing disk and DATABASE_PATH.
 
 Sign-in and tenant registration now share `/login`, with registration at `/login?mode=signup`; old `/signup` links redirect there. Showcase records cannot be published as vacancies until staff enter verified details and change the listing category. Existing real listings remain unchanged.
+
+## Complete rental applications release
+
+This release adds application details, a form-version flag, private supporting-document storage, and document-removal audit records to the existing SQLite database. No database reset is needed. Keep the same persistent disk and `DATABASE_PATH`; earlier applications and reviews remain available. Income proof and photo ID are required for new applications, with optional rental-history and additional files (PDF/JPEG/PNG, 2 MB each, five files total). Only agents and administrators can view full submissions and download or remove documents. Credit is self-reported and the app makes no eligibility decisions.
+
+Verify the full form on an available listing and test submissions in a staging environment using artificial documents. Verify staff-only review/download access, retention/removal with a reason, and preservation after redeploy. Application documents are stored in the database and its backups; protect them and apply your document-retention policy. Do not submit test identity documents to production.

@@ -1,3 +1,4 @@
+const {rentalApplication}=require('./rental-fixtures.cjs');
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const {fixture}=require('./fixture.cjs');
@@ -20,7 +21,7 @@ test('public vacancy applications and staff reviews enforce availability and pri
   assert.equal((await (await call('/api/properties',{cookie:admin})).json()).properties.length,5);
   assert.equal((await post('/api/properties',admin,{...inventory[0],available:'true'})).status,400);
   const id=properties[0].id,closedId=properties[4].id;
-  const applicant={name:'New Applicant <test>',email:'applicant@example.test',phone:'+1 (202) 555-0123',moveIn:'2099-01-15',occupants:2,message:'Interested in this home.',consent:true};
+  const applicant=rentalApplication({name:'New Applicant <test>',email:'applicant@example.test',phone:'+1 (202) 555-0123',moveIn:'2099-01-15',occupants:2,message:'Interested in this home.',consent:true});
   const url='/api/vacancies/'+id+'/applications';
   assert.equal((await call('/vacancies')).status,200);
   assert.equal((await post(url,null,applicant,'https://evil.example')).status,403);

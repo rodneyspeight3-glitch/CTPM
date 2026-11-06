@@ -6,7 +6,7 @@ test('production startup, database health, revision, secure cookies, pages, and 
  const app=await fixture({NODE_ENV:'production',APP_ORIGIN:origin,RENDER_GIT_COMMIT:revision});
  try{
   const health=await fetch(app.base+'/health');assert.equal(health.status,200);assert.deepEqual(await health.json(),{status:'ok',revision});
-  for(const path of ['/','/home','/signup','/login','/vacancies','/style.css?v=9','/settings.js?v=9','/vacancies.js?v=9','/api/company'])assert.equal((await fetch(app.base+path)).status,200,path);
+  for(const path of ['/','/home','/signup','/login','/vacancies','/style.css?v=10','/settings.js?v=10','/vacancies.js?v=10','/api/company'])assert.equal((await fetch(app.base+path)).status,200,path);
   const root=await fetch(app.base+'/',{redirect:'manual'});assert.equal(root.status,200);const portal=await fetch(app.base+'/dashboard',{redirect:'manual'});assert.equal(portal.status,302);assert.equal(portal.headers.get('location'),'/login?next=%2Fdashboard');
   const login=await fetch(app.base+'/api/login',{method:'POST',headers:{'Content-Type':'application/json',Origin:origin},body:JSON.stringify(app.credentials)});assert.equal(login.status,200);
   const setCookie=login.headers.get('set-cookie');for(const attribute of ['Secure','HttpOnly','SameSite=Lax'])assert.ok(setCookie.includes(attribute));
