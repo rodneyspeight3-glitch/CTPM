@@ -26,3 +26,14 @@ test('staff can change contact and payment settings; tenants read them privately
   const persisted=(await (await call('/api/settings',{cookie:admin})).json()).settings;assert.equal(persisted.paymentInstructions,'Updated by agent.');assert.equal(persisted.revision,2);
  }finally{await app.cleanup();}
 });
+
+test('default brand migration removes the old suffix without changing contact or payment settings',()=>{
+ const {DatabaseSync}=require('node:sqlite'),{createSettings}=require('../lib/settings');
+ const db=new DatabaseSync(':memory:');try{
+  let settings=createSettings(db);const previous={...settings.get(),companyName:'Come Together Property Management LLC',contactEmail:'office@example.test',paymentAccountDetails:'Keep this payment reference'};
+  db.prepare('UPDATE company_settings SET data=?,revision=7 WHERE id=1').run(JSON.stringify(previous));
+  settings=createSettings(db);const updated=settings.get();assert.equal(updated.companyName,'Come Together Property Management');assert.equal(updated.contactEmail,previous.contactEmail);assert.equal(updated.paymentAccountDetails,previous.paymentAccountDetails);assert.equal(updated.revision,8);
+  createSettings(db);assert.equal(settings.get().revision,8);
+  db.prepare('UPDATE company_settings SET data=? WHERE id=1').run(JSON.stringify({...previous,companyName:'Custom management name'}));assert.equal(createSettings(db).get().companyName,'Custom management name');
+ }finally{db.close();}
+});

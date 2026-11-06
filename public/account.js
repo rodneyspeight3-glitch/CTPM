@@ -31,6 +31,9 @@ $('#password-form').onsubmit=async event=>{event.preventDefault();const data=Obj
  document.querySelectorAll('.avatar').forEach(el=>el.textContent=user.name[0].toUpperCase());
  $('#team-nav').hidden=user.role!=='admin';
  if(user.role!=='tenant'){
+  document.querySelector('.nav-item[data-page="homes"]').innerHTML='<span>⌂</span> Property';
+  $('#homes .page-heading h1').textContent='Property portfolio.';
+  $('#homes .page-heading .eyebrow').textContent='YOUR PROPERTY PORTFOLIO';
   $('.workspace-label').textContent='YOUR MANAGEMENT SPACE';$('#portal-title').textContent=user.role==='admin'?'Admin portal':'Agent portal';
   $('.page-heading .eyebrow').textContent='YOUR MANAGEMENT WORKSPACE';
   $('#overview h1').textContent='Welcome back, '+user.name.split(' ')[0]+'.';

@@ -15,7 +15,7 @@ async function loadRequests(){
 function go(page,updateHash=true){
  if(typeof currentUser==='undefined'||!currentUser)return;
  portalRouteVersion++;
- const labels={overview:'Dashboard',saved:'Saved homes',homes:'Find a home',requests:'Maintenance',documents:'Resources',team:'Manage accounts',applications:'Applications',settings:'Management settings',leases:'Leases',ledger:'Rent ledger',messages:'Messages',account:'My account'};
+ const labels={overview:'Dashboard',saved:'Saved homes',homes:currentUser.role==='tenant'?'Find a home':'Property',requests:'Maintenance',documents:'Resources',team:'Manage accounts',applications:'Applications',settings:'Management settings',leases:'Leases',ledger:'Rent ledger',messages:'Messages',account:'My account'};
  if(!Object.hasOwn(labels,page)||(page==='saved'&&currentUser.role!=='tenant')||(page==='team'&&currentUser.role!=='admin')||(['applications','settings'].includes(page)&&currentUser.role==='tenant')){page='overview';history.replaceState(null,'','#overview');}
  document.querySelectorAll('.page').forEach(el=>el.hidden=el.id!==page);
  document.querySelectorAll('.nav-item').forEach(el=>el.classList.toggle('active',el.dataset.page===page));
@@ -49,7 +49,7 @@ const modal=$('#modal');let previousFocus;
 function openModal(content){previousFocus=document.activeElement;$('#modal-content').innerHTML=content;if(!modal.open)modal.showModal();}
 function closeModal(){modal.close();previousFocus?.focus();}
 $('#close-modal').onclick=closeModal;modal.addEventListener('click',e=>{if(e.target===modal){const r=modal.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)closeModal();}});
-function contact(){openModal('<p class="eyebrow">COME TOGETHER PROPERTY MANAGEMENT LLC</p><h2>Let’s connect.</h2><p>Thanks for your interest in our community. Company contact details and inquiry delivery have not been configured yet.</p><p style="margin-top:15px">This contact panel does not send inquiries. For maintenance, use Maintenance to submit a request to your management team.</p>');}
+function contact(){openModal('<p class="eyebrow">COME TOGETHER PROPERTY MANAGEMENT</p><h2>Let’s connect.</h2><p>Thanks for your interest in our community. Company contact details and inquiry delivery have not been configured yet.</p><p style="margin-top:15px">This contact panel does not send inquiries. For maintenance, use Maintenance to submit a request to your management team.</p>');}
 $('#contact-main').onclick=contact;$('#contact-side').onclick=contact;
 $('#payment').onclick=()=>openModal('<p class="eyebrow">RENT & PAYMENTS</p><h2>A little peace of mind.</h2><p>Online payments will be available when your property manager connects a secure payment provider and verifies your resident account.</p><p style="margin-top:15px">No payment is due in this demo. Always confirm payment instructions directly with your property manager.</p>');
 $('#notifications').onclick=()=>openModal('<p class="eyebrow">YOU’RE ALL CAUGHT UP</p><h2>Welcome, neighbor.</h2><p>Check Maintenance for the latest request status and updates from your management team.</p>');
