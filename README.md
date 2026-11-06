@@ -26,6 +26,8 @@ Open http://localhost:3000. A fresh local database needs `ADMIN_EMAIL` and a uni
 - **Handover:** admin database checks, storage/retention review, owner checklist, staff action audit, and password-confirmed consistent SQLite backup downloads. Personal exports contain only the current account's records.
 - **Appearance:** a refreshed teal/mint/coral interface, alternate palettes, dark/system mode, compact spacing, reduced motion, keyboard command search, and a home-screen manifest. No sensitive offline cache or service worker is installed.
 
+The [50 home-page additions](docs/HOME-50.md) cover advanced discovery, local shortlists, budgets, moving plans, viewing preparation and application help. These tools use the current public inventory and browser storage, without paid add-ons.
+
 The [50-improvement index](docs/RELEASE-50.md) identifies each control. The [handover guide](docs/HANDOVER.md) explains operating limits, owner setup, backup restoration, and validation.
 
 ## Hosting and email configuration
