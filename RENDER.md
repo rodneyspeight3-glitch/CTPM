@@ -1,6 +1,6 @@
 # Existing Render deployment
 
-Keep the existing `ctpm` service at https://ctpm.onrender.com and its current persistent disk. Do not create a second service or replace an unrelated database. The owner chose **Keep Render; no paid add-ons**. Render hosting/disk remains the existing subscription; the core app requires no paid add-on. The owner now selected mail.com SMTP for automated email; it needs an existing company mailbox with SMTP access, which may require mail.com Premium. No subscription is purchased by the app.
+Keep the existing `ctpm` service at https://ctpm.onrender.com and its current persistent disk. Do not create a second service or replace an unrelated database. The owner chose **Keep Render; no paid add-ons**. Render hosting/disk remains the existing subscription; the core app requires no paid add-on. Personal Gmail SMTP is available without a paid email subscription when Google app passwords are supported. mail.com SMTP requires an existing Premium account. No subscription is purchased by the app.
 
 ## Settings
 
@@ -46,6 +46,6 @@ See [the handover guide](docs/HANDOVER.md) for daily workflows and the backup/re
 
 ## Company SMTP release
 
-See [docs/SMTP.md](docs/SMTP.md). Set `SMTP_HOST=smtp.mail.com`, `SMTP_PORT=465`, `SMTP_USER` and `SMTP_FROM` to the same dedicated company mailbox, and its password privately as `SMTP_PASSWORD`. Select it with `SMTP_ENABLED=true`. Keep `ALLOW_PAID_INTEGRATIONS=false`; SMTP does not enable checkout or Resend. Missing credentials leave email off while dashboard notifications continue. Use Admin → Service connections → Check SMTP connection after saving the actual company password. Sender display names do not hide addresses in email headers.
+See [docs/SMTP.md](docs/SMTP.md). For personal Gmail, set `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=465`, `SMTP_USER` and `SMTP_FROM` to the same Gmail address, and a Google app password privately as `SMTP_PASSWORD`. Pause SMTP before switching providers or passwords. Existing mail.com Premium mailboxes can use `smtp.mail.com` instead. Select it with `SMTP_ENABLED=true`. Keep `ALLOW_PAID_INTEGRATIONS=false`; SMTP does not enable checkout or Resend. Missing credentials leave email off while dashboard notifications continue. Use Admin → Service connections → Check SMTP connection after saving the sender’s app/SMTP password. Sender display names do not hide addresses in email headers.
 
 The application email preference defaults off on existing applications. New forms let applicants explicitly choose progress mail. There is no historical welcome/receipt bulk mailing on connection. New email-token/outbox fields are additive and keep the existing disk and database. Unsubscribe tokens are hashed; confirmation uses a same-origin POST. Tests cover welcome, receipts, status changes, suppression, dedicated sender headers, and SMTP retries with local transports. Real mailbox delivery needs the owner's private credentials and SMTP-enabled access. The animated real-building background stays on the light page surface and supports reduced motion. Mail/background assets use version 16; the appearance layer uses version 17.

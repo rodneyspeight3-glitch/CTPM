@@ -1,22 +1,57 @@
-# Automated email through mail.com SMTP
+# Automated email through Gmail or mail.com SMTP
 
-The application uses Nodemailer and the existing SQLite email outbox. No email service is purchased by the app. mail.com's published SMTP settings are in its [Premium IMAP/SMTP guide](https://support.mail.com/premium/imap/server.html); the selected mailbox must already allow SMTP. A free mailbox without SMTP access cannot be enabled by application code. No subscription upgrade is made automatically.
+The application uses Nodemailer and the existing SQLite email outbox. Personal Gmail is supported without a paid email subscription when the account allows Google app passwords. mail.com is also supported for an existing Premium mailbox; its free accounts cannot use SMTP. No subscription is purchased or upgraded by the app.
 
 ## Configure privately in the existing Render service
 
 | Render Environment variable | Value |
 |---|---|
-| `SMTP_ENABLED` | `true` to select mail.com; `false` pauses external delivery |
-| `SMTP_HOST` | `smtp.mail.com` |
+| `SMTP_ENABLED` | `true` to enable the selected SMTP provider; `false` pauses delivery |
+| `SMTP_HOST` | `smtp.gmail.com` for personal Gmail, or `smtp.mail.com` |
 | `SMTP_PORT` | `465` for TLS, or `587` for mandatory STARTTLS |
 | `SMTP_USER` | The complete owner-authorized sender mailbox address |
 | `SMTP_FROM` | The same owner-authorized sender mailbox address |
-| `SMTP_PASSWORD` | That mailbox's SMTP password, entered privately in Render |
+| `SMTP_PASSWORD` | Google app password for Gmail, or that mail.com mailbox's SMTP password; enter privately in Render |
 | `PUBLIC_APP_URL` | `https://ctpm.onrender.com`; Render's service URL is a fallback |
 
-Keep `ALLOW_PAID_INTEGRATIONS` unset or `false`. SMTP does not require that legacy flag and never activates Stripe or Resend. When mail.com is selected but incomplete, the app does not fall back to another provider. Never place a mailbox password in source control, chat, Management settings, or public agent profiles. Check that SMTP is enabled for the selected mailbox at mail.com; use its application-specific password if required by the account's two-factor settings.
+Keep `ALLOW_PAID_INTEGRATIONS` unset or `false`. SMTP does not require that legacy flag and never activates Stripe or Resend. When SMTP is selected but incomplete, the app does not fall back to another provider. Never place a mailbox password in source control, chat, Management settings, or public agent profiles. Follow the provider setup below. Only the two supported SMTP hosts and TLS ports 465/587 are accepted; private-network and arbitrary SMTP hosts are refused.
 
 Use the same authorized mailbox as both login and sender. The app rejects mismatched SMTP login and From addresses. A dedicated company mailbox is recommended; the owner may instead choose a personal mailbox as both values. That choice makes the personal address visible to recipients. Sender display name is **Come Together Property Management (No Reply)**. The selected address remains visible in From, envelope, and message headers. TLS encrypts the SMTP connection; it does not hide sender identity or provide end-to-end message encryption. Mailbox addresses and passwords are configured privately in Render, rather than embedded in source.
+
+## Personal Gmail setup (no paid subscription)
+
+1. Keep `SMTP_ENABLED=false` while switching providers. Do this **before** replacing
+   the password, so an old provider cannot receive the new provider's password.
+2. Use a Gmail mailbox you control. Enable Google 2-Step Verification and create a
+   password for this app at [Google App passwords](https://myaccount.google.com/apppasswords).
+   Use the generated app password, not the ordinary Google sign-in password.
+3. Set `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=465`, and set both `SMTP_USER` and
+   `SMTP_FROM` to that same Gmail address. Personal `gmail.com` and `googlemail.com`
+   addresses are supported. Do not keep a mail.com sender behind a Gmail login.
+4. Save the app password privately as `SMTP_PASSWORD` in Render. Displayed spaces
+   in Google's app-password groups are removed for Gmail only. No password is
+   stored in source or returned by setup/status APIs.
+5. Once the settings are complete, enable SMTP and use Admin → Service connections
+   → Check SMTP connection. A connection check sends no email. Startup also checks
+   the encrypted login and holds the outbox until that check finishes.
+
+Google's [app-password guide](https://support.google.com/accounts/answer/185833)
+explains eligibility: 2-Step Verification is required, and certain account
+security or organization policies can make app passwords unavailable. This app
+uses authenticated SMTP, not Google OAuth; it cannot override those policies.
+Gmail can apply sending limits and recipient spam filtering. The app's conservative
+outbox budget is 400 emails per rolling 24 hours and ten per minute. Mail beyond
+that budget remains pending without using retries. The admin page shows usage.
+This counter covers this app, not mail sent elsewhere from the same Gmail account.
+
+## Existing mail.com Premium setup
+
+mail.com [requires Premium for SMTP](https://support.mail.com/pop-imap/toggle.html).
+If Premium already exists, enable **Email → Settings → POP3 & IMAP → Enable access
+via POP3 and IMAP** and save. Its [server guide](https://support.mail.com/premium/imap/server.html)
+provides the supported TLS settings. Use an app-specific password if the mailbox's
+security settings require it. Retrying a free mail.com account with different
+passwords cannot enable SMTP; no upgrade is purchased by this app.
 
 ## Automatic messages
 
@@ -32,13 +67,13 @@ Message bodies contain a reference and status, not credit scores, financial answ
 
 ## Delivery and verification
 
-Email is processed every five seconds while the single Render instance runs. SMTP is limited to ten accepted messages per minute across the outbox; the mailbox provider may impose additional quotas. Queue entries are deduplicated by event. Transient failures retry with backoff up to six attempts; authentication, TLS, and permanent rejections stop for review. Authentication/TLS failures also pause automatic delivery for fifteen minutes to avoid repeated failed logins. A successful administrator connection check or explicit retry clears the pause. Stable Message-ID values are reused, but SMTP cannot guarantee exactly-once delivery after a server accepts a message and the connection then fails.
+Email is processed every five seconds while the single Render instance runs. SMTP is limited to ten accepted messages per minute across the outbox, with the additional Gmail daily budget above; the mailbox provider may impose additional quotas. Queue entries are deduplicated by event. Transient failures retry with backoff up to six attempts; authentication, TLS, and permanent rejections stop for review. Authentication/TLS failures also pause automatic delivery for fifteen minutes to avoid repeated failed logins. A successful administrator connection check or explicit retry clears the pause. Stable Message-ID values are reused, but SMTP cannot guarantee exactly-once delivery after a server accepts a message and the connection then fails.
 
 Newer application progress supersedes older pending progress. The worker checks the current status, recipient, opt-out, account state, and expiry again before sending. Expired and suppressed messages are cancelled. Sent/cancelled message bodies and private unsubscribe URLs are cleared from the outbox; backups made before delivery may still contain private links.
 
 Admin → **Built-in services / Service connections** shows configuration completeness, safe delivery counts, and sanitized error codes. **Check SMTP connection** tests TLS and login without sending an email. **Retry recent failed email** queues at most twenty unexpired failures from the last seven days; suppression checks run again. Agent and tenant accounts cannot inspect configuration or trigger these actions. No secret values or raw SMTP errors are exposed by the app.
 
-After configuring the company mailbox, sign in as administrator and check SMTP. Then test signup and application updates in a separate staging environment using addresses you control. Automated tests use local transports and artificial records; they do not establish that mail.com has accepted the owner's real credentials or that recipient inboxes will accept delivery. Do not upload fake identity documents to production for an email test. Manual replies and bounces may still reach the authorized company mailbox; inbound email is not imported into portal conversations.
+After configuring the sender mailbox, sign in as administrator and check SMTP. Then test signup and application updates in a separate staging environment using addresses you control. Automated tests use local transports and artificial records; they do not establish that the selected provider has accepted the owner's real credentials or that recipient inboxes will accept delivery. Do not upload fake identity documents to production for an email test. Manual replies and bounces may still reach the authorized sender mailbox; inbound email is not imported into portal conversations.
 
 ## Background photography
 
@@ -50,6 +85,6 @@ Photo source: [Unsplash building photograph](https://images.unsplash.com/photo-1
 
 All automated delivery passes through a shared formatter, including welcome, verification, recovery, general notifications, application receipts, progress updates, and document requests. Existing queued mail receives the same policy when delivered. The sender display name includes **(No Reply)**, every body says **Please do not reply**, and help links point to portal messages and the public management contact section. The footer is added once, including during retries.
 
-The app sets `Auto-Submitted: auto-generated` and `X-Auto-Response-Suppress: All` to discourage automatic reply loops, preserving application unsubscribe headers. It keeps the authenticated company address and envelope for legitimate delivery and bounces. It does not invent `noreply@realtyagent.com`, redirect replies to an unrelated mailbox, or block a person from manually replying. A literal no-reply sender needs its own provider-authorized mailbox and matching credentials under the existing matching-mailbox rule.
+The app sets `Auto-Submitted: auto-generated` and `X-Auto-Response-Suppress: All` to discourage automatic reply loops, preserving application unsubscribe headers. It keeps the authenticated sender address and envelope for legitimate delivery and bounces. It does not invent `noreply@realtyagent.com`, redirect replies to an unrelated mailbox, or block a person from manually replying. A literal no-reply sender needs its own provider-authorized mailbox and matching credentials under the existing matching-mailbox rule.
 
 When SMTP is configured, startup performs a TLS/login check without sending a test email. The check never blocks website startup. Outbox delivery waits during the check, and failures pause delivery with sanitized status codes. The admin service connections page shows the last successful connection check; a complete configuration alone is not proof of successful authentication or inbox delivery.

@@ -69,4 +69,4 @@ See [RELEASE-50.md](RELEASE-50.md) for the feature index. Owner tasks still incl
 
 ## Company SMTP update
 
-The owner selected mail.com SMTP for welcome and application-progress email. Follow [SMTP.md](SMTP.md) to configure the dedicated company mailbox. The company sender is visible; a personal mailbox is not concealed behind a display name or alias. This feature requires the mailbox's existing SMTP access and private password; the app does not buy a mail.com plan. Core in-app updates and recovery codes remain available without it.
+Welcome and application-progress email supports personal Gmail with a Google app password, or an existing mail.com Premium mailbox. Follow [SMTP.md](SMTP.md). Keep delivery paused while changing providers or credentials. The selected sender address is visible; a display name does not conceal a personal mailbox. Gmail's outbox budget is 400 emails per rolling 24 hours, with pending messages retained when it is reached. No paid email plan is purchased. Core in-app updates and recovery codes remain available without it.

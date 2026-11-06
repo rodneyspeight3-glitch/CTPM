@@ -25,7 +25,7 @@ test('mail.com uses encrypted authenticated SMTP and a dedicated company sender 
   await u.mailer.send({to:'recipient@example.test',subject:'Test notice',text:'Synthetic message',key:'stable-message'});assert.equal(u.messages[1].payload.messageId,u.messages[0].payload.messageId);
   process.env.SMTP_PORT='587';await u.mailer.verify();assert.equal(u.options[1].secure,false);assert.equal(u.options[1].requireTLS,true);
   process.env.SMTP_PORT='25';assert.equal(u.mailer.configured(),false);await assert.rejects(u.mailer.send({to:'recipient@example.test',subject:'Test',text:'Test',key:'bad-port'}));
-  process.env.SMTP_PORT='465';process.env.SMTP_USER='private-login@example.test';assert.equal(u.mailer.configured(),false);assert.match(smtpSettings().problem,/dedicated company mailbox/);process.env.SMTP_USER='company@example.test';process.env.SMTP_FROM='';assert.equal(u.mailer.configured(),false);process.env.SMTP_FROM='company@example.test';process.env.SMTP_ENABLED='false';assert.equal(u.mailer.configured(),false);
+  process.env.SMTP_PORT='465';process.env.SMTP_USER='private-login@example.test';assert.equal(u.mailer.configured(),false);assert.match(smtpSettings().problem,/same authorized mailbox/);process.env.SMTP_USER='company@example.test';process.env.SMTP_FROM='';assert.equal(u.mailer.configured(),false);process.env.SMTP_FROM='company@example.test';process.env.SMTP_ENABLED='false';assert.equal(u.mailer.configured(),false);
  }finally{u.cleanup();}
 });
 test('signup produces a durable in-app welcome and a one-use welcome/verification email without passwords',async()=>{
@@ -78,5 +78,40 @@ test('startup SMTP verification sends no message and reports only safe failure c
  const u=await unit();try{
   const ready=await u.notices.startupCheck();assert.equal(ready.status,'verified');assert.equal(u.messages.length,0);assert.ok(u.notices.deliveryStatus(u.admin).smtp.lastVerifiedAt);
   u.state.error=Object.assign(Error('Must not expose '+process.env.SMTP_PASSWORD),{code:'EAUTH'});const failed=await u.notices.startupCheck();assert.deepEqual(failed,{status:'failed',code:'AUTHENTICATION_FAILED'});assert.ok(u.notices.deliveryStatus(u.admin).smtp.retryAfter);u.notices.enqueue({to:'recipient@example.test',subject:'Held',body:'Held while auth is failing',key:'startup-hold'});await u.notices.drain();assert.equal(u.db.prepare("SELECT status FROM email_outbox WHERE event_key='startup-hold'").get().status,'Pending');assert.equal(u.messages.length,0);
+ }finally{u.cleanup();}
+});
+test('personal Gmail uses an app password, encrypted transport and its actual no-reply sender without exposing credentials',async()=>{
+ const u=await unit();try{
+  process.env.SMTP_HOST=' SMTP.GMAIL.COM ';process.env.SMTP_USER=process.env.SMTP_FROM='synthetic.sender@gmail.com';process.env.SMTP_PASSWORD='abcd efgh ijkl mnop';
+  const checked=await u.mailer.verify();assert.match(checked.message,/Gmail SMTP/);assert.equal(u.messages.length,0);
+  assert.equal(u.options[0].host,'smtp.gmail.com');assert.equal(u.options[0].auth.pass,'abcdefghijklmnop');assert.equal(u.options[0].secure,true);assert.equal(u.options[0].tls.rejectUnauthorized,true);
+  u.notices.enqueue({to:'recipient@example.test',subject:'Gmail notice',body:'Synthetic message',key:'gmail-notice'});await u.notices.drain();assert.equal(u.messages.length,1);
+  const {payload,mime}=u.messages[0];assert.equal(payload.from.address,'synthetic.sender@gmail.com');assert.equal(payload.from.name,'Come Together Property Management (No Reply)');assert.equal(payload.envelope.from,payload.from.address);assert.match(payload.text,/Please do not reply/);assert.equal(payload.headers['Auto-Submitted'],'auto-generated');assert.ok(!mime.includes('abcdefghijklmnop'));
+  const status=u.notices.deliveryStatus(u.admin);assert.equal(status.provider,'Gmail SMTP');assert.equal(status.smtp.dailyLimit,400);assert.equal(status.smtp.sentLast24h,1);assert.ok(!JSON.stringify(status).includes('abcdefghijklmnop'));assert.ok(!JSON.stringify(status).includes('synthetic.sender@gmail.com'));
+  process.env.SMTP_PORT='587';await u.mailer.verify();assert.equal(u.options[1].secure,false);assert.equal(u.options[1].requireTLS,true);assert.equal(u.options[1].tls.minVersion,'TLSv1.2');
+  process.env.SMTP_ENABLED='false';assert.equal(u.mailer.configured(),false);assert.equal(u.mailer.status().provider,'Gmail SMTP');
+ }finally{u.cleanup();}
+});
+test('Gmail refuses mismatched mailboxes, old mail.com identities and unsupported hosts before opening a transport',async()=>{
+ const u=await unit();try{
+  process.env.SMTP_HOST='smtp.gmail.com';process.env.SMTP_USER=process.env.SMTP_FROM='old.sender@example.test';
+  process.env.SMTP_PASSWORD='abcdefghijklmnop';
+  assert.equal(u.mailer.configured(),false);await assert.rejects(u.mailer.verify(),{code:'SMTP_NOT_CONFIGURED'});assert.equal(u.options.length,0);
+  process.env.SMTP_USER='synthetic.sender@gmail.com';assert.equal(u.mailer.configured(),false);
+  process.env.SMTP_FROM=process.env.SMTP_USER;assert.equal(u.mailer.configured(),true);
+  for(const host of ['localhost','127.0.0.1','169.254.169.254','smtp.gmail.com.attacker.test','https://smtp.gmail.com']){process.env.SMTP_HOST=host;assert.equal(u.mailer.configured(),false);await assert.rejects(u.mailer.verify(),{code:'SMTP_NOT_CONFIGURED'});}
+  assert.equal(u.options.length,0);process.env.SMTP_HOST='smtp.gmail.com';process.env.SMTP_PASSWORD='ordinary-password-not-an-app-password';assert.equal(u.mailer.configured(),false);assert.match(u.mailer.status().problem,/16-character Google app password/);await assert.rejects(u.mailer.verify(),{code:'SMTP_NOT_CONFIGURED'});assert.equal(u.options.length,0);process.env.SMTP_PASSWORD=' \n\t';assert.equal(u.mailer.configured(),false);assert.ok(u.mailer.status().missing.includes('SMTP_PASSWORD'));
+ }finally{u.cleanup();}
+});
+test('Gmail daily budget holds pending email without consuming retries and resumes after the rolling window',async()=>{
+ const u=await unit();try{
+  process.env.SMTP_HOST='smtp.gmail.com';process.env.SMTP_USER=process.env.SMTP_FROM='synthetic.sender@gmail.com';
+  process.env.SMTP_PASSWORD='abcdefghijklmnop';
+  const insert=u.db.prepare("INSERT INTO email_outbox(recipient,subject,body,kind,status,available_at,created_at,sent_at,event_key) VALUES('recipient@example.test','Already sent','','transactional','Sent',?,?,?,?)"),now=new Date().toISOString();
+  for(let i=0;i<400;i++)insert.run(Date.now(),now,now,'prior:'+i);
+  u.notices.enqueue({to:'recipient@example.test',subject:'Wait for budget',body:'Keep this until delivery',key:'daily-wait'});await u.notices.drain();
+  let row=u.db.prepare("SELECT * FROM email_outbox WHERE event_key='daily-wait'").get();assert.equal(row.status,'Pending');assert.equal(row.attempts,0);assert.equal(row.body,'Keep this until delivery');assert.equal(u.messages.length,0);
+  u.db.prepare("UPDATE email_outbox SET sent_at=? WHERE status='Sent'").run(new Date(Date.now()-25*3600000).toISOString());await u.notices.drain();
+  row=u.db.prepare("SELECT * FROM email_outbox WHERE event_key='daily-wait'").get();assert.equal(row.status,'Sent');assert.equal(row.body,'');assert.equal(u.messages.length,1);assert.equal(u.notices.deliveryStatus(u.admin).smtp.sentLast24h,1);
  }finally{u.cleanup();}
 });
