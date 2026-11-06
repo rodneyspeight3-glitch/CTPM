@@ -6,7 +6,7 @@ async function api(url,options={}){
  if(!response.ok)throw new Error(result.error||'Unable to complete request.');
  return result;
 }
-window.loadTeam=async()=>{try{const {users}=await api('/api/admin/users');$('#team-list').innerHTML=users.map(user=>`<article class="request-row"><h3>${escapeHTML(user.name)}</h3><p>${escapeHTML(user.email)}</p><div class="request-meta"><span>${escapeHTML(user.role.toUpperCase())}</span></div></article>`).join('');$('#team-error').textContent='';}catch(error){$('#team-error').textContent=error.message;}};
+window.loadTeam=async()=>{try{const {users}=await api('/api/admin/users');$('#team-list').innerHTML=users.map(user=>`<article class="request-row"><h3>${escapeHTML(user.name)}</h3><p>${escapeHTML(user.email)}</p><div class="request-meta"><span>${escapeHTML(user.role.toUpperCase())} · ${user.active?'Active':'Disabled'}</span><button class="text-link" data-edit-account="${user.id}">Edit account</button></div></article>`).join('');$('#team-error').textContent='';}catch(error){$('#team-error').textContent=error.message;}};
 function showCreateAccount(role='tenant'){
  openModal('<p class="eyebrow">ADMINISTRATOR ACCESS</p><h2>Bring your people together.</h2><form id="create-user-form"><label>Full name<input name="name" required maxlength="100" autocomplete="name"></label><label>Email address<input name="email" type="email" required maxlength="254" autocomplete="off"></label><label>Account type<select name="role"><option value="tenant">Tenant</option><option value="agent">Agent</option><option value="admin">Admin</option></select></label><label>Initial password<input name="password" type="password" required minlength="16" maxlength="128" autocomplete="new-password"></label><p class="form-note">Use at least 16 characters. Share these credentials securely; no email is sent.</p><p id="create-user-error" role="alert"></p><button class="button green">Create account →</button></form>');
  $('#create-user-form').elements.role.value=role;
@@ -36,6 +36,6 @@ $('#password-form').onsubmit=async event=>{event.preventDefault();const data=Obj
   $('#overview .page-heading p:not(.eyebrow)').textContent=user.role==='admin'?'Bring your team and residents together. Manage account access and explore your property portfolio.':'Your property portfolio and resident resources, together in one workspace.';
   $('#new-request').hidden=true;
  }
- await Promise.all([loadHomes(),loadRequests(),loadApplications(),loadSettings(true)]);
+ await Promise.all([loadHomes(),loadRequests(),loadApplications(),loadSettings(true),loadOperations()]);
  go(location.hash.slice(1)||'overview',false);
 }catch(error){toast(error.message);}})();

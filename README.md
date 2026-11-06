@@ -2,7 +2,18 @@
 
 A responsive property management app with one login for tenants, agents, and administrators. Includes server-enforced account roles, an administrator account directory, account creation, password changes, hashed passwords, and persistent expiring sessions.
 
-Agents and admins can add properties with rent, address, bedroom/bathroom counts, square footage, and an illustrative photo. Staff can mark each property available when adding it, and change availability later. The dashboard shows every available property and live portfolio, maintenance, and application totals. Tenants browse available properties alongside clearly marked sample listings. Tenants can submit maintenance requests saved to SQLite; agents and admins track requests and send resident-visible status updates.
+Agents and admins can add properties with rent, address, bedroom/bathroom counts, square footage, and an illustrative photo. Staff can mark each property available when adding it, and change availability later. The dashboard shows every available property and live portfolio, maintenance, and application totals. Tenants browse available properties, with clearly marked sample listings available through an optional checkbox. Tenants can submit maintenance requests saved to SQLite; agents and admins track requests and send resident-visible status updates.
+
+## Daily workflow
+
+1. Sign in through the shared Tenant / Agent / Admin login. Admins create resident and agent accounts in **Manage accounts** and can edit names, emails, roles, reset temporary passwords, or disable accounts. Account changes that affect access revoke existing sessions. The current administrator cannot remove their own administrator access; residents with active leases must have those leases ended before disabling or changing their role.
+2. Agents/admins add or edit properties in **Find a home**, upload a JPEG/PNG photo (up to 1 MB), and mark vacant homes Available. Vacancies appear on the dashboard and public application page. Archive/restore keeps property history without deleting applications or financial records. Archived properties and actively leased properties cannot be published as vacancies. Sample listings are opt-in and never accept applications.
+3. Review vacancy applications, then create the selected resident's account. In **Leases**, assign that tenant to a property with dates, rent, deposit, and resident-visible notes. Each property represents one rental home/unit and supports one active lease; each tenant account has one active lease. An active lease automatically removes its property from public vacancies. Upload existing signed agreements as private PDFs up to 5 MB; staff and the assigned tenant can download all uploaded versions. The app records agreements but does not generate legal contracts or provide electronic signatures.
+4. In **Rent ledger**, staff add one rent charge per lease/month and record payments already received externally. Amounts use integer cents, including partial payments. Overpayments, duplicate monthly charges, and duplicate nonempty payment references are rejected. Voiding a mistaken recording requires a reason, preserves its history, and restores the balance; it does not refund money. Tenants see only their own ledger and can print a statement. Due dates and partial-month amounts follow the signed agreement; automatic recurring billing and proration are not enabled.
+5. Residents submit maintenance and send private **Messages**. Staff can start a conversation with an active resident, reply, and close conversations. A new reply reopens the thread. Messages and updates stay in the portal; no external email or text is sent. The tenant dashboard shows the assigned home, lease, and outstanding rent.
+6. Keep company contacts and approved payment instructions current in **Management settings**. End a lease when appropriate; balances and documents remain available. Ending a lease does not automatically relist the home—staff choose when to make it Available again.
+
+All operational records, uploaded photos, and lease PDFs are stored in the same persistent SQLite database. Existing users, properties, applications, and requests are preserved by additive migrations.
 
 ## Develop
 
@@ -14,7 +25,7 @@ Open `/login`, select your assigned account type, and sign in. Only administrato
 
 ## Properties and maintenance
 
-Agents and administrators use **Find a home → Add property**. Administrators use **Manage accounts → Create agent** to create agent access; tenants and agents cannot create accounts. All agents and administrators share the property portfolio and maintenance queue.
+Agents and administrators use **Find a home → Add property**. Administrators use **Manage accounts → Create agent** to create agent access; tenants and agents cannot create accounts. All agents and administrators share the property portfolio, leasing, ledger, messaging, and maintenance workspaces.
 
 Tenants use **Maintenance → New request** to provide their address/unit, category, priority, description, and optional property reference. Requests start as Submitted. Staff can mark them In progress or Completed and leave a resident-visible update. Tenants see only their own requests and can cancel while Submitted. Status filters and Refresh requests keep the queue easy to review. Updates are checked on navigation or refresh; email/push notifications and emergency dispatch are not configured.
 
@@ -34,11 +45,11 @@ Agents and administrators can update **Management settings** at any time. Save t
 
 Changes are persistent in SQLite and recorded with the editing staff account and time. A stale edit is rejected instead of overwriting another staff member's update; use **Reload saved settings** to load the current version. The **Contact management** buttons open saved email/phone links. Before contact or payment information has been saved, the app explains what is missing.
 
-All portal pages have `/#page` links that survive reload and browser back/forward navigation. Staff-only pages are guarded in the UI and API. Notifications show current maintenance/application totals with links to the relevant pages. Resources contain expandable guidance; lease uploads, email recovery, and external payment processing remain separate integrations.
+All portal pages have `/#page` links that survive reload and browser back/forward navigation. Staff-only pages are guarded in the UI and API. Notifications show current maintenance/application totals with links to the relevant pages. Resources contain expandable guidance. Signed lease PDFs are privately downloadable from Leases. Email recovery and external payment processing remain separate integrations; administrators can reset access through Manage accounts.
 
 ## Validate
 
-`npm test` starts isolated servers with temporary databases and randomized credentials. It verifies API authorization, incorrect-role denial, admin account creation, persistence across restart, session revocation, password changes, login rate limiting, cross-origin rejection, browser login for all roles, property creation, tenant request isolation, validation, maintenance status updates/cancellation, image loading, vacancy filtering, anonymous application submission, staff review, legacy schema migration, stale-listing rejection, duplicate handling, rate limiting, production startup/secure cookies, staff-managed payment settings, every page navigation/reload, and responsive layouts. Test-only inventory fixtures include four available homes and an occupied property; no fixtures are inserted into production. Test databases and test users do not touch the application database.
+`npm test` starts isolated servers with temporary databases and randomized credentials. It verifies API authorization, incorrect-role denial, admin account creation, persistence across restart, session revocation, password changes, login rate limiting, cross-origin rejection, browser login for all roles, property creation, tenant request isolation, validation, maintenance status updates/cancellation, image loading, vacancy filtering, anonymous application submission, staff review, legacy schema migration, stale-listing rejection, duplicate handling, rate limiting, production startup/secure cookies, staff-managed payment settings, every page navigation/reload, leasing, private document/photo access, exact rent balances, partial payments and voids, account disabling/reset, private messaging, and responsive layouts. Test-only inventory fixtures include four available homes and an occupied property; no fixtures are inserted into production. Test databases and test users do not touch the application database.
 
 Browser tests use `/usr/bin/chromium`; set `CHROMIUM_PATH` for another installed Chromium binary.
 
@@ -48,6 +59,6 @@ See [RENDER.md](RENDER.md) for deploying to an **existing** Render service with 
 
 ## Product scope and assets
 
-Three sample listings remain clearly marked. Management-created properties and maintenance requests are stored on the server. Listing photos are illustrations. Agents/admins configure contact and payment instructions in Management settings. Payment processing and receipts are handled by the linked provider. Email password recovery, lease document uploads, in-app general inquiry delivery, and email/push notifications are not configured.
+Three optional sample listings remain clearly marked. Management-created properties and maintenance requests are stored on the server. Staff can upload actual property photos; otherwise illustrations are used. Agents/admins configure contact and payment instructions in Management settings. Payment processing and receipts are handled by the linked provider. Email password recovery, electronic signatures, automatic recurring billing, and email/push notifications are not configured. Resident messaging works inside the portal.
 
 Property images come from the public Bedimcode responsive real estate example: https://github.com/bedimcode/responsive-real-state-website/tree/main/assets/img. Replace them with company-owned photos before launch. Assets are served locally.

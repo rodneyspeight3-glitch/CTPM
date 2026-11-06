@@ -35,6 +35,7 @@ const {fixture}=require('./fixture.cjs');
  assert.equal(await page.locator('#featured a[href^="/vacancies?property="]').count(),4);
  assert.equal(await page.locator('#featured').getByText('Occupied home').count(),0);
  await page.locator('[data-page="homes"]').click();
+ await page.locator('#show-samples').check();
  await page.locator('#search').fill('Willow');
  assert.equal(await page.locator('#all-homes .property-card').count(),1);
  await page.locator('#beds').selectOption('1');

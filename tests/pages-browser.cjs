@@ -13,7 +13,7 @@ const {fixture}=require('./fixture.cjs');
    await page.goto(app.base+'/login');await page.locator('input[name="role"][value="'+role+'"]').check();await page.locator('[name="email"]').fill(role+'@example.test');await page.locator('[name="password"]').fill(app.credentials.password);await page.locator('#sign-in').click();await page.locator('#account-name').filter({hasText:role==='admin'?'Company Administrator':'Test '+role}).waitFor({state:'attached'});
   };
   await signIn('admin');
-  for(const name of ['overview','homes','requests','documents','applications','team','settings','account']){
+  for(const name of ['overview','homes','requests','leases','ledger','messages','documents','applications','team','settings','account']){
    await page.locator('[data-page="'+name+'"]').click();await page.locator('#'+name).waitFor();
    await page.reload();await page.locator('#'+name).waitFor();assert.equal(new URL(page.url()).hash,'#'+name);
   }

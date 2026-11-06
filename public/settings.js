@@ -23,7 +23,7 @@ function contactDetails(settings){
 }
 contact=async()=>{
  openModal('<h2>Contact management.</h2><p>Loading contact details…</p>');
- try{const settings=await loadSettings();if(!modal.open)return;$('#modal-content').innerHTML=`<p class="eyebrow">${escapeHTML(settings.companyName)}</p><h2>Let’s connect.</h2><div class="contact-details">${contactDetails(settings)}</div><p class="form-note">Email opens your email app. For immediate danger, call 911.</p>`;}
+ try{const settings=await loadSettings();if(!modal.open)return;$('#modal-content').innerHTML=`<p class="eyebrow">${escapeHTML(settings.companyName)}</p><h2>Let’s connect.</h2><div class="contact-details">${contactDetails(settings)}</div><p><button class="button green" id="contact-messages">Open resident messages →</button></p><p class="form-note">Email opens your email app. For immediate danger, call 911.</p>`;}
  catch(error){if(modal.open)$('#modal-content').innerHTML=`<h2>Contact management.</h2><p role="alert">${escapeHTML(error.message)}</p>`;}
 };
 $('#contact-main').onclick=contact;$('#contact-side').onclick=contact;
@@ -35,9 +35,12 @@ $('#payment').onclick=async()=>{
  }catch(error){if(modal.open)$('#modal-content').innerHTML=`<h2>Rent & payments.</h2><p role="alert">${escapeHTML(error.message)}</p>`;}
 };
 $('#notifications').onclick=async()=>{
- await Promise.all([loadRequests(),loadApplications()]);
+ await Promise.all([loadRequests(),loadApplications(),loadOperations()]);
  const staff=['agent','admin'].includes(currentUser?.role),open=requests.filter(r=>['Submitted','In progress'].includes(r.status)).length;
- openModal(`<p class="eyebrow">YOUR LATEST ACTIVITY</p><h2>Community updates.</h2><p>${open} open maintenance request${open===1?'':'s'}${staff?' across the community':''}.</p>${staff?`<p>${applications.filter(a=>a.status!=='Closed').length} active vacancy applications.</p>`:''}<div class="notification-actions"><button class="button green" id="notification-maintenance">View maintenance →</button>${staff?'<button class="button green" id="notification-applications">View applications →</button>':''}</div>`);
+ openModal(`<p class="eyebrow">YOUR LATEST ACTIVITY</p><h2>Community updates.</h2><p>${open} open maintenance request${open===1?'':'s'}${staff?' across the community':''}.</p>${staff?`<p>${applications.filter(a=>a.status!=='Closed').length} active vacancy applications.</p>`:''}<p>${conversations.filter(c=>c.status==='Open').length} open resident conversations.</p><div class="notification-actions"><button class="button green" id="notification-messages">View messages →</button><button class="button green" id="notification-maintenance">View maintenance →</button>${staff?'<button class="button green" id="notification-applications">View applications →</button>':''}</div>`);
+ $('#notification-messages').onclick=()=>{closeModal();go('messages');};
  $('#notification-maintenance').onclick=()=>{closeModal();go('requests');};
  if($('#notification-applications'))$('#notification-applications').onclick=()=>{closeModal();go('applications');};
 };
+
+document.addEventListener('click',event=>{if(event.target.closest('#contact-messages')){closeModal();go('messages');}});

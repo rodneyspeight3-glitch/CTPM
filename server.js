@@ -5,17 +5,19 @@ const {createAuth}=require('./lib/auth');
 const {createManagement}=require('./lib/management');
 const {createVacancies}=require('./lib/vacancies');
 const {createSettings}=require('./lib/settings');
+const {createOperations}=require('./lib/operations');
 const root=path.join(__dirname,'public');
 async function main(){
  const auth=await createAuth(process.env.DATABASE_PATH||path.join(__dirname,'.data','app.sqlite'));
  const management=createManagement(auth.db);
  const vacancies=createVacancies(auth.db);
  const settings=createSettings(auth.db);
+ const operations=createOperations(auth.db);
  const json=(res,status,data)=>{res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(data));};
  const redirect=(res,to)=>{res.writeHead(302,{Location:to,'Cache-Control':'no-store'}).end();};
- async function body(req){
+ async function body(req,maxSize=16384){
   if(!req.headers['content-type']?.startsWith('application/json')){const e=new Error('JSON content is required.');e.status=415;throw e;}
-  let data='';for await(const chunk of req){data+=chunk;if(Buffer.byteLength(data)>16384){const e=new Error('Request too large.');e.status=413;throw e;}}
+  let data='';for await(const chunk of req){data+=chunk;if(Buffer.byteLength(data)>maxSize){const e=new Error('Request too large.');e.status=413;throw e;}}
   try{const parsed=JSON.parse(data);if(!parsed||Array.isArray(parsed)||typeof parsed!=='object')throw Error();return parsed;}catch{const e=new Error('Invalid request.');e.status=400;throw e;}
  }
  const server=http.createServer(async(req,res)=>{
@@ -29,6 +31,8 @@ async function main(){
     return json(res,200,{status:'ok',revision:/^[a-f0-9]{40}$/.test(process.env.RENDER_GIT_COMMIT||'')?process.env.RENDER_GIT_COMMIT:null});
    }
    const user=auth.userFor(req);
+   const photoRead=pathname.match(/^\/property-photos\/(\d+)$/);
+   if(photoRead&&['GET','HEAD'].includes(req.method)){const photo=management.photo(user,photoRead[1]);res.writeHead(200,{'Content-Type':photo.mime,'Cache-Control':'private, no-store'});return res.end(req.method==='HEAD'?undefined:photo.data);}
    if(pathname.startsWith('/api/')){
     if(req.method==='POST'){
      // Browser clients must send an Origin matching the host; JSON prevents form-based CSRF.
@@ -46,6 +50,48 @@ async function main(){
     const vacancyApplication=pathname.match(/^\/api\/vacancies\/(\d+)\/applications$/);
     if(vacancyApplication&&req.method==='POST')return json(res,200,vacancies.apply(vacancyApplication[1],await body(req),req.socket.remoteAddress));
     if(!user)return json(res,401,{error:'Please sign in to continue.'});
+    const documentRead=pathname.match(/^\/api\/lease-documents\/(\d+)\/download$/);
+    if(documentRead&&['GET','HEAD'].includes(req.method)){const doc=operations.document(user,documentRead[1]);res.writeHead(200,{'Content-Type':'application/pdf','Content-Disposition':`attachment; filename="lease-document-${doc.id}.pdf"`,'Cache-Control':'private, no-store'});return res.end(req.method==='HEAD'?undefined:doc.data);}
+    const documentUpload=pathname.match(/^\/api\/leases\/(\d+)\/documents$/);
+    if(documentUpload&&req.method==='POST'){
+     if(!['agent','admin'].includes(user.role))return json(res,403,{error:'Agent or administrator access is required.'});
+     return json(res,201,{document:operations.addDocument(user,documentUpload[1],await body(req,7100000))});
+    }
+    const photoUpload=pathname.match(/^\/api\/properties\/(\d+)\/photo$/);
+    if(photoUpload&&req.method==='POST'){
+     if(!['agent','admin'].includes(user.role))return json(res,403,{error:'Agent or administrator access is required.'});
+     return json(res,201,management.savePhoto(user,photoUpload[1],await body(req,1450000)));
+    }
+    if(pathname==='/api/residents'&&req.method==='GET')return json(res,200,{residents:operations.residents(user)});
+    if(pathname==='/api/leases'){
+     if(req.method==='GET')return json(res,200,{leases:operations.leases(user)});
+     if(req.method==='POST')return json(res,201,{lease:operations.addLease(user,await body(req))});
+    }
+    const leaseEnd=pathname.match(/^\/api\/leases\/(\d+)\/end$/);
+    if(leaseEnd&&req.method==='POST')return json(res,200,{lease:operations.endLease(user,leaseEnd[1])});
+    if(pathname==='/api/ledger'){
+     if(req.method==='GET')return json(res,200,{charges:operations.ledger(user)});
+     if(req.method==='POST')return json(res,201,{charge:operations.addCharge(user,await body(req))});
+    }
+    const recordPayment=pathname.match(/^\/api\/ledger\/(\d+)\/payments$/);
+    if(recordPayment&&req.method==='POST')return json(res,201,{payment:operations.recordPayment(user,recordPayment[1],await body(req))});
+    const voidPayment=pathname.match(/^\/api\/payments\/(\d+)\/void$/);
+    if(voidPayment&&req.method==='POST')return json(res,200,operations.voidPayment(user,voidPayment[1],await body(req)));
+    if(pathname==='/api/conversations'){
+     if(req.method==='GET')return json(res,200,{conversations:operations.conversations(user)});
+     if(req.method==='POST')return json(res,201,{conversation:operations.newConversation(user,await body(req))});
+    }
+    const conversationMessages=pathname.match(/^\/api\/conversations\/(\d+)\/messages$/);
+    if(conversationMessages){
+     if(req.method==='GET')return json(res,200,operations.messages(user,conversationMessages[1]));
+     if(req.method==='POST')return json(res,201,operations.reply(user,conversationMessages[1],await body(req)));
+    }
+    const conversationClose=pathname.match(/^\/api\/conversations\/(\d+)\/close$/);
+    if(conversationClose&&req.method==='POST')return json(res,200,operations.closeConversation(user,conversationClose[1]));
+    const propertyEdit=pathname.match(/^\/api\/properties\/(\d+)\/(edit|archive)$/);
+    if(propertyEdit&&req.method==='POST')return json(res,200,{property:propertyEdit[2]==='edit'?management.editProperty(user,propertyEdit[1],await body(req)):management.archiveProperty(user,propertyEdit[1],await body(req))});
+    const accountEdit=pathname.match(/^\/api\/admin\/users\/(\d+)$/);
+    if(accountEdit&&req.method==='POST')return json(res,200,{user:await auth.updateUser(user,accountEdit[1],await body(req))});
     if(pathname==='/api/settings'){
      if(req.method==='GET')return json(res,200,{settings:settings.get()});
      if(req.method==='POST')return json(res,200,{settings:settings.update(user,await body(req))});

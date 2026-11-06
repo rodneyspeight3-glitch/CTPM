@@ -1,6 +1,6 @@
 const select=selector=>document.querySelector(selector);
 const escapeText=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const formatMoney=value=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(value);
+const formatMoney=value=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',minimumFractionDigits:0,maximumFractionDigits:2}).format(value);
 let vacancies=[];
 async function vacancyAPI(url,options={}){
  const response=await fetch(url,{...options,headers:{'Content-Type':'application/json',...options.headers}});
@@ -9,7 +9,7 @@ async function vacancyAPI(url,options={}){
 function renderVacancies(){
  const query=select('#vacancy-search').value.toLowerCase();
  const visible=vacancies.filter(p=>(p.name+' '+p.area).toLowerCase().includes(query));
- select('#vacancy-list').innerHTML=visible.length?visible.map(p=>`<article class="property-card"><div class="property-image"><img src="/images/home-${p.image}.jpg" alt="Illustrative photograph for ${escapeText(p.name)}"><span class="property-badge">AVAILABLE · ${escapeText(p.type)}</span></div><div class="property-body"><div class="property-top"><h3>${escapeText(p.name)}</h3><strong>${formatMoney(p.price)}<small> / mo</small></strong></div><p class="location">${escapeText(p.area)} · ${escapeText(p.address)}</p><div class="property-footer"><span>${p.beds} beds</span><span>${p.baths} baths</span><span>${p.size} sq ft</span></div><div class="listing-actions"><button class="button green" data-apply="${p.id}">Apply for this home →</button></div></div></article>`).join(''):'<div class="empty-state dashboard-empty"><h3>No available homes match your search.</h3><p>Check back for new vacancies.</p></div>';
+ select('#vacancy-list').innerHTML=visible.length?visible.map(p=>`<article class="property-card"><div class="property-image"><img src="${p.photoUpdated?'/property-photos/'+p.id+'?v='+encodeURIComponent(p.photoUpdated):'/images/home-'+p.image+'.jpg'}" alt="${p.photoUpdated?'Property photograph for':'Illustrative photograph for'} ${escapeText(p.name)}"><span class="property-badge">AVAILABLE · ${escapeText(p.type)}</span></div><div class="property-body"><div class="property-top"><h3>${escapeText(p.name)}</h3><strong>${formatMoney(p.price)}<small> / mo</small></strong></div><p class="location">${escapeText(p.area)} · ${escapeText(p.address)}</p><div class="property-footer"><span>${p.beds} beds</span><span>${p.baths} baths</span><span>${p.size} sq ft</span></div><div class="listing-actions"><button class="button green" data-apply="${p.id}">Apply for this home →</button></div></div></article>`).join(''):'<div class="empty-state dashboard-empty"><h3>No available homes match your search.</h3><p>Check back for new vacancies.</p></div>';
 }
 async function loadVacancies(){
  try{vacancies=(await vacancyAPI('/api/vacancies')).properties;renderVacancies();select('#vacancies-error').textContent='';return true;}catch(error){select('#vacancies-error').textContent=error.message;return false;}
