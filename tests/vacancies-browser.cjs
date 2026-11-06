@@ -13,7 +13,7 @@ const inventory=require('./listing-fixtures.cjs');
   const staff=await browser.newPage({viewport:{width:1440,height:1000}}),guest=await browser.newPage({viewport:{width:390,height:844}});
   const errors=[];for(const page of [staff,guest])page.on('pageerror',e=>errors.push(e.message));
   await staff.goto(app.base+'/login');
-  await staff.locator('input[name="role"][value="admin"]').check();
+
   await staff.locator('[name="email"]').fill(app.credentials.email);await staff.locator('[name="password"]').fill(app.credentials.password);await staff.locator('#sign-in').click();
   await staff.locator('#featured h3').filter({hasText:'Cedar Court <test>'}).waitFor();
   assert.equal(await staff.locator('#featured .property-card').count(),4);

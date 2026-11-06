@@ -15,6 +15,7 @@ async function main(){
  const operations=createOperations(auth.db);
  const json=(res,status,data)=>{res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(data));};
  const redirect=(res,to)=>{res.writeHead(302,{Location:to,'Cache-Control':'no-store'}).end();};
+ function dashboardTarget(value){try{const target=new URL(value,'https://ctpm.local');if(target.origin==='https://ctpm.local'&&target.pathname==='/dashboard')return target.pathname+target.search+target.hash;}catch{}return '/dashboard';}
  async function body(req,maxSize=16384){
   if(!req.headers['content-type']?.startsWith('application/json')){const e=new Error('JSON content is required.');e.status=415;throw e;}
   let data='';for await(const chunk of req){data+=chunk;if(Buffer.byteLength(data)>maxSize){const e=new Error('Request too large.');e.status=413;throw e;}}
@@ -25,7 +26,7 @@ async function main(){
   res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'");
   if(process.env.NODE_ENV==='production')res.setHeader('Strict-Transport-Security','max-age=31536000');
   try{
-   const pathname=new URL(req.url,'http://localhost').pathname;
+   const requestURL=new URL(req.url,'http://localhost'),pathname=requestURL.pathname;
    if(pathname==='/health'&&req.method==='GET'){
     auth.db.prepare('SELECT 1').get();
     return json(res,200,{status:'ok',revision:/^[a-f0-9]{40}$/.test(process.env.RENDER_GIT_COMMIT||'')?process.env.RENDER_GIT_COMMIT:null});
@@ -44,6 +45,12 @@ async function main(){
      const result=await auth.login(await body(req),req);
      if(!result)return json(res,401,{error:'Email, password, or account type is incorrect.'});
      res.setHeader('Set-Cookie',result.cookie);return json(res,200,{user:result.user});
+    }
+    if(pathname==='/api/signup'&&req.method==='POST'){
+     if(user)return json(res,409,{error:'Sign out before creating another account.'});
+     const result=await auth.signup(await body(req),req);
+     if(!result)return json(res,503,{error:'Account created. Please sign in to continue.'});
+     res.setHeader('Set-Cookie',result.cookie);return json(res,201,{user:result.user});
     }
     if(pathname==='/api/vacancies'&&req.method==='GET')return json(res,200,{properties:vacancies.listVacancies()});
     if(pathname==='/api/company'&&req.method==='GET')return json(res,200,{company:settings.publicContact()});
@@ -93,7 +100,7 @@ async function main(){
     const accountEdit=pathname.match(/^\/api\/admin\/users\/(\d+)$/);
     if(accountEdit&&req.method==='POST')return json(res,200,{user:await auth.updateUser(user,accountEdit[1],await body(req))});
     if(pathname==='/api/settings'){
-     if(req.method==='GET')return json(res,200,{settings:settings.get()});
+     if(req.method==='GET')return json(res,200,{settings:settings.forUser(user)});
      if(req.method==='POST')return json(res,200,{settings:settings.update(user,await body(req))});
     }
     if(pathname==='/api/applications'&&req.method==='GET')return json(res,200,{applications:vacancies.listApplications(user)});
@@ -122,9 +129,10 @@ async function main(){
     return json(res,404,{error:'Not found.'});
    }
    if(!['GET','HEAD'].includes(req.method))return json(res,405,{error:'Method not allowed.'});
-   if((pathname==='/'||pathname==='/index.html')&&!user)return redirect(res,'/login');
-   if((pathname==='/login'||pathname==='/login.html')&&user)return redirect(res,'/');
-   const relative=pathname==='/'?'/index.html':pathname==='/login'?'/login.html':pathname==='/vacancies'?'/vacancies.html':pathname;
+   if(pathname==='/dashboard'&&!user)return redirect(res,'/login?next='+encodeURIComponent('/dashboard'+requestURL.search));
+   if(pathname==='/index.html')return redirect(res,user?'/dashboard':'/login');
+   if(['/login','/login.html','/signup','/signup.html'].includes(pathname)&&user)return redirect(res,dashboardTarget(requestURL.searchParams.get('next')));
+   const relative=pathname==='/'||pathname==='/home'?'/home.html':pathname==='/dashboard'?'/index.html':pathname==='/login'?'/login.html':pathname==='/signup'?'/signup.html':pathname==='/vacancies'?'/vacancies.html':pathname;
    const file=path.resolve(root,'.'+decodeURIComponent(relative));
    if(!file.startsWith(root+path.sep))return json(res,403,{error:'Forbidden.'});
    fs.readFile(file,(error,data)=>{

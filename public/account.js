@@ -37,5 +37,7 @@ $('#password-form').onsubmit=async event=>{event.preventDefault();const data=Obj
   $('#new-request').hidden=true;
  }
  await Promise.all([loadHomes(),loadRequests(),loadApplications(),loadSettings(true),loadOperations()]);
- go(location.hash.slice(1)||'overview',false);
+ const newProperty=new URLSearchParams(location.search).get('newProperty')==='1';
+ go(newProperty?'homes':location.hash.slice(1)||'overview',false);
+ if(newProperty){history.replaceState(null,'','/dashboard#homes');if(['admin','agent'].includes(user.role))propertyForm();else toast('Property creation is available to agents and administrators.');}
 }catch(error){toast(error.message);}})();

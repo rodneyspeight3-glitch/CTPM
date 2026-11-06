@@ -6,7 +6,8 @@ test('shared login enforces roles, persists accounts, protects admin routes, and
  const request=(url,{method='GET',data,cookie,origin=base}={})=>fetch(base+url,{method,redirect:'manual',headers:{...(method==='POST'?{'Content-Type':'application/json',Origin:origin}:{}),...(cookie?{Cookie:cookie}:{})},body:data===undefined?undefined:JSON.stringify(data)});
  const signIn=async(credentials)=>{const response=await request('/api/login',{method:'POST',data:credentials});assert.equal(response.status,200);return response.headers.get('set-cookie').split(';')[0];};
  try{
-  assert.equal((await request('/')).status,302);
+  assert.equal((await request('/')).status,200);
+  assert.equal((await request('/dashboard')).status,302);
   assert.equal((await request('/api/session')).status,401);
   assert.equal((await request('/health')).status,200);
   assert.equal((await request('/api/login',{method:'POST',data:app.credentials,origin:'https://attacker.example'})).status,403);

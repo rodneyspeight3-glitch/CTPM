@@ -1,7 +1,4 @@
-let properties = [
-{id:-1,image:1,sample:true,name:'The Willow House',area:'Willow Creek',price:1850,beds:3,baths:2,size:'1,480',photo:'photo-1600596542815-ffad4c1539a9',type:'SINGLE-FAMILY HOME'},
-{id:-2,image:2,sample:true,name:'Parkside Residences',area:'Parkside District',price:1450,beds:2,baths:2,size:'1,120',photo:'photo-1600607687939-ce8a6c25118c',type:'APARTMENT'},
-{id:-3,image:3,sample:true,name:'The Oakwood',area:'Oakwood Heights',price:1250,beds:1,baths:1,size:'820',photo:'photo-1600210492486-724fe5c67fb0',type:'APARTMENT'}];
+let properties=window.CTPM_SAMPLE_PROPERTIES.map(p=>({...p}));
 const $ = selector => document.querySelector(selector);
 const money = value => new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',minimumFractionDigits:0,maximumFractionDigits:2}).format(value);
 const escapeHTML = text => String(text).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
@@ -81,6 +78,7 @@ function propertyForm(property=null){
  $('#property-form').onsubmit=async event=>{event.preventDefault();const button=event.target.querySelector('button');button.disabled=true;const data=Object.fromEntries(new FormData(event.target));for(const key of ['price','beds','baths','size','image'])data[key]=Number(data[key]);data.available=data.available==='true';try{await api(property?'/api/properties/'+property.id+'/edit':'/api/properties',{method:'POST',body:JSON.stringify(data)});closeModal();$('#search').value='';$('#beds').value='all';go('homes');toast(property?'Property updated.':'Property added.');}catch(error){$('#property-error').textContent=error.message;}finally{button.disabled=false;}};
 };
 $('#add-property').onclick=()=>propertyForm();
+$('#dashboard-add-property').onclick=()=>{go('homes');propertyForm();};
 let toastTimer;function toast(message){$('#toast').textContent=message;$('#toast').style.display='block';clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').style.display='none',4000);}
 $('#today').textContent=new Intl.DateTimeFormat('en-US',{month:'short',day:'numeric',year:'numeric',timeZone:'America/New_York'}).format(new Date());$('#year').textContent=new Date().getFullYear();
 

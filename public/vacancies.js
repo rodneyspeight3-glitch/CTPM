@@ -12,7 +12,7 @@ function renderVacancies(){
  select('#vacancy-list').innerHTML=visible.length?visible.map(p=>`<article class="property-card"><div class="property-image"><img src="${p.photoUpdated?'/property-photos/'+p.id+'?v='+encodeURIComponent(p.photoUpdated):'/images/home-'+p.image+'.jpg'}" alt="${p.photoUpdated?'Property photograph for':'Illustrative photograph for'} ${escapeText(p.name)}"><span class="property-badge">AVAILABLE · ${escapeText(p.type)}</span></div><div class="property-body"><div class="property-top"><h3>${escapeText(p.name)}</h3><strong>${formatMoney(p.price)}<small> / mo</small></strong></div><p class="location">${escapeText(p.area)} · ${escapeText(p.address)}</p><div class="property-footer"><span>${p.beds} beds</span><span>${p.baths} baths</span><span>${p.size} sq ft</span></div><div class="listing-actions"><button class="button green" data-apply="${p.id}">Apply for this home →</button></div></div></article>`).join(''):'<div class="empty-state dashboard-empty"><h3>No available homes match your search.</h3><p>Check back for new vacancies.</p></div>';
 }
 async function loadVacancies(){
- try{vacancies=(await vacancyAPI('/api/vacancies')).properties;renderVacancies();select('#vacancies-error').textContent='';return true;}catch(error){select('#vacancies-error').textContent=error.message;return false;}
+ try{vacancies=(await vacancyAPI('/api/vacancies')).properties;renderVacancies();select('#vacancies-error').textContent='';window.dispatchEvent(new CustomEvent('vacancies:loaded',{detail:{count:vacancies.length}}));return true;}catch(error){select('#vacancies-error').textContent=error.message;return false;}
 }
 const dialog=select('#application-modal');let applicationFocus;
 select('#close-application').onclick=()=>dialog.close();
@@ -24,7 +24,7 @@ function applyFor(p){
  select('#vacancy-application-form').onsubmit=async event=>{
   event.preventDefault();const button=event.target.querySelector('button');button.disabled=true;
   const data=Object.fromEntries(new FormData(event.target));data.occupants=Number(data.occupants);data.consent=event.target.elements.consent.checked;
-  try{const result=await vacancyAPI('/api/vacancies/'+p.id+'/applications',{method:'POST',body:JSON.stringify(data)});select('#application-content').innerHTML=`<h2 id="application-title">Application received.</h2><div class="application-success"><p>${escapeText(result.message)}</p></div>`;history.replaceState(null,'','/vacancies');}
+  try{const result=await vacancyAPI('/api/vacancies/'+p.id+'/applications',{method:'POST',body:JSON.stringify(data)});select('#application-content').innerHTML=`<h2 id="application-title">Application received.</h2><div class="application-success"><p>${escapeText(result.message)}</p></div>`;const current=new URL(location.href);current.searchParams.delete('property');history.replaceState(null,'',current.pathname+current.search+current.hash);}
   catch(error){select('#application-error').textContent=error.message;button.disabled=false;}
  };
 }
@@ -33,4 +33,4 @@ select('#refresh-vacancies').onclick=loadVacancies;
 document.addEventListener('click',event=>{const button=event.target.closest('[data-apply]');if(!button)return;const p=vacancies.find(p=>p.id===Number(button.dataset.apply));if(p)applyFor(p);});
 (async()=>{if(!await loadVacancies())return;const id=new URLSearchParams(location.search).get('property');if(!id)return;const p=vacancies.find(p=>p.id===Number(id));if(p)applyFor(p);else select('#vacancies-error').textContent='That property is no longer available. Browse the current vacancies below.';})();
 
-(async()=>{try{const {company}=await vacancyAPI('/api/company');const footer=select('#public-contact');footer.textContent=company.companyName;for(const [text,href] of [[company.contactEmail,company.contactEmail?'mailto:'+company.contactEmail:''],[company.contactPhone,company.contactPhone?'tel:'+company.contactPhone.replace(/[^+\d]/g,''):'']]){if(!text)continue;const a=document.createElement('a');a.textContent=text;a.href=href;footer.append(a);}}catch{select('#public-contact').textContent='Contact management through your resident portal.';}})();
+(async()=>{try{const {company}=await vacancyAPI('/api/company');window.dispatchEvent(new CustomEvent('company:loaded',{detail:company}));const footer=select('#public-contact');footer.textContent=company.companyName;for(const [text,href] of [[company.contactEmail,company.contactEmail?'mailto:'+company.contactEmail:''],[company.contactPhone,company.contactPhone?'tel:'+company.contactPhone.replace(/[^+\d]/g,''):'']]){if(!text)continue;const a=document.createElement('a');a.textContent=text;a.href=href;footer.append(a);}}catch{select('#public-contact').textContent='Contact management through your resident portal.';}})();

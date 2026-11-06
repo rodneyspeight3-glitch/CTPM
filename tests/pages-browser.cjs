@@ -10,7 +10,7 @@ const {fixture}=require('./fixture.cjs');
   browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',args:['--no-sandbox']});
   const page=await browser.newPage({viewport:{width:1440,height:1000}});const errors=[];page.on('pageerror',e=>errors.push(e.message));
   const signIn=async role=>{
-   await page.goto(app.base+'/login');await page.locator('input[name="role"][value="'+role+'"]').check();await page.locator('[name="email"]').fill(role+'@example.test');await page.locator('[name="password"]').fill(app.credentials.password);await page.locator('#sign-in').click();await page.locator('#account-name').filter({hasText:role==='admin'?'Company Administrator':'Test '+role}).waitFor({state:'attached'});
+   await page.goto(app.base+'/login');await page.locator('[name="email"]').fill(role+'@example.test');await page.locator('[name="password"]').fill(app.credentials.password);await page.locator('#sign-in').click();await page.locator('#account-name').filter({hasText:role==='admin'?'Company Administrator':'Test '+role}).waitFor({state:'attached'});
   };
   await signIn('admin');
   for(const name of ['overview','homes','requests','leases','ledger','messages','documents','applications','team','settings','account']){

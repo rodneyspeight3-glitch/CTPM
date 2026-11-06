@@ -11,7 +11,8 @@ form.onsubmit=async event=>{
   const response=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
   const result=await response.json();
   if(!response.ok)throw new Error(result.error||'Unable to sign in. Please try again.');
-  window.location.assign('/');
+  let target='/dashboard';try{const next=new URL(new URLSearchParams(location.search).get('next')||'/dashboard',location.origin);if(next.origin===location.origin&&next.pathname==='/dashboard')target=next.pathname+next.search+next.hash;}catch{}
+  window.location.assign(target);
  }catch(err){error.textContent=err instanceof TypeError?'Connection interrupted. Please try again.':err.message;}
  finally{button.disabled=false;button.innerHTML='Sign in <span>→</span>';}
 };

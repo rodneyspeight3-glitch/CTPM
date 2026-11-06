@@ -10,7 +10,7 @@ const {fixture}=require('./fixture.cjs');
  const browser = await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH || '/usr/bin/chromium',args:['--no-sandbox']});
  const page = await browser.newPage({viewport:{width:1440,height:1100}});
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
- await page.goto(app.base);
+ await page.goto(app.base+'/login');
  await page.getByRole('heading',{name:'It’s good to have you here.'}).waitFor();
  await page.setViewportSize({width:390,height:844});
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
@@ -76,7 +76,7 @@ const {fixture}=require('./fixture.cjs');
  await page.locator('#logout').click();
  await page.waitForURL('**/login');
  for(const role of ['agent','admin']){
-  await page.locator('input[name="role"][value="'+role+'"]').check();
+
   await page.locator('[name="email"]').fill(role+'@example.test');
   await page.locator('[name="password"]').fill(app.credentials.password);
   await page.locator('#sign-in').click();
@@ -115,7 +115,7 @@ const {fixture}=require('./fixture.cjs');
   }
   await page.locator('#logout').click();await page.waitForURL('**/login');
  }
- await page.locator('input[name="role"][value="tenant"]').check();
+
  await page.locator('[name="email"]').fill('tenant@example.test');
  await page.locator('[name="password"]').fill(app.credentials.password);
  await page.locator('#sign-in').click();
