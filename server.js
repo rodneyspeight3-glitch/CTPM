@@ -7,21 +7,33 @@ const {createVacancies}=require('./lib/vacancies');
 const {createSettings}=require('./lib/settings');
 const {createOperations}=require('./lib/operations');
 const {seedShowcase}=require('./lib/showcase');
+const {createNotifications}=require('./lib/notifications');
+const {createAccountServices}=require('./lib/account-services');
+const {createResidentServices}=require('./lib/resident-services');
+const {createFinance}=require('./lib/finance');
+const {createSignatures}=require('./lib/signatures');
+const {createExperience}=require('./lib/experience');
+const {createAgents}=require('./lib/agents');
+const {createServiceRoutes}=require('./lib/service-routes');
 const root=path.join(__dirname,'public');
 async function main(){
  const auth=await createAuth(process.env.DATABASE_PATH||path.join(__dirname,'.data','app.sqlite'));
  const management=createManagement(auth.db);seedShowcase(auth.db);
- const vacancies=createVacancies(auth.db);
+ let resident;const vacancies=createVacancies(auth.db,{onEvent:(id,type)=>resident.applicationEvent(id,type)});
  const settings=createSettings(auth.db);
  const operations=createOperations(auth.db);
+ const notices=createNotifications(auth.db),accounts=createAccountServices(auth.db,notices);
+ resident=createResidentServices(auth.db,notices);
+ const finance=createFinance(auth.db,notices),signatures=createSignatures(auth.db,notices),experience=createExperience(auth.db,notices),agents=createAgents(auth.db);
  const json=(res,status,data)=>{res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(data));};
  const redirect=(res,to)=>{res.writeHead(302,{Location:to,'Cache-Control':'no-store'}).end();};
  function dashboardTarget(value){try{const target=new URL(value,'https://ctpm.local');if(target.origin==='https://ctpm.local'&&target.pathname==='/dashboard')return target.pathname+target.search+target.hash;}catch{}return '/dashboard';}
+ async function rawBody(req,maxSize=16384){const chunks=[];let size=0;for await(const chunk of req){size+=chunk.length;if(size>maxSize){const e=new Error('Request too large.');e.status=413;throw e;}chunks.push(chunk);}return Buffer.concat(chunks);}
  async function body(req,maxSize=16384){
   if(!req.headers['content-type']?.startsWith('application/json')){const e=new Error('JSON content is required.');e.status=415;throw e;}
-  let data='';for await(const chunk of req){data+=chunk;if(Buffer.byteLength(data)>maxSize){const e=new Error('Request too large.');e.status=413;throw e;}}
-  try{const parsed=JSON.parse(data);if(!parsed||Array.isArray(parsed)||typeof parsed!=='object')throw Error();return parsed;}catch{const e=new Error('Invalid request.');e.status=400;throw e;}
+  const bytes=await rawBody(req,maxSize);try{const parsed=JSON.parse(bytes.toString('utf8'));if(!parsed||Array.isArray(parsed)||typeof parsed!=='object')throw Error();return parsed;}catch{const e=new Error('Invalid request.');e.status=400;throw e;}
  }
+ const services=createServiceRoutes({accounts,notices,resident,finance,signatures,experience,agents,body,rawBody,json});
  const server=http.createServer(async(req,res)=>{
   res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('X-Frame-Options','DENY');res.setHeader('Referrer-Policy','same-origin');
   res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'");
@@ -35,13 +47,15 @@ async function main(){
    const user=auth.userFor(req);
    const photoRead=pathname.match(/^\/property-photos\/(\d+)$/);
    if(photoRead&&['GET','HEAD'].includes(req.method)){const photo=management.photo(user,photoRead[1]);res.writeHead(200,{'Content-Type':photo.mime,'Cache-Control':'private, no-store'});return res.end(req.method==='HEAD'?undefined:photo.data);}
+   if(/^\/(agent-photos|gallery-photos)\/\d+$/.test(pathname)&&await services(req,res,requestURL,user))return;
    if(pathname.startsWith('/api/')){
-    if(req.method==='POST'){
+    if(req.method==='POST'&&pathname!=='/api/webhooks/stripe'){
      // Browser clients must send an Origin matching the host; JSON prevents form-based CSRF.
      const origin=req.headers.origin;
      const expected=process.env.APP_ORIGIN||(req.headers.host?`${process.env.NODE_ENV==='production'?'https':'http'}://${req.headers.host}`:'');
      if(!origin||origin!==expected||req.headers['sec-fetch-site']==='cross-site')return json(res,403,{error:'Request origin is not allowed.'});
     }
+    if(await services(req,res,requestURL,user))return;
     if(pathname==='/api/login'&&req.method==='POST'){
      const result=await auth.login(await body(req),req);
      if(!result)return json(res,401,{error:'Email, password, or account type is incorrect.'});
@@ -51,6 +65,7 @@ async function main(){
      if(user)return json(res,409,{error:'Sign out before creating another account.'});
      const result=await auth.signup(await body(req),req);
      if(!result)return json(res,503,{error:'Account created. Please sign in to continue.'});
+     if(accounts.status().emailEnabled)try{accounts.requestVerification(result.user,req);}catch{}
      res.setHeader('Set-Cookie',result.cookie);return json(res,201,{user:result.user});
     }
     if(pathname==='/api/vacancies'&&req.method==='GET')return json(res,200,{properties:vacancies.listVacancies()});
@@ -101,7 +116,7 @@ async function main(){
     const conversationClose=pathname.match(/^\/api\/conversations\/(\d+)\/close$/);
     if(conversationClose&&req.method==='POST')return json(res,200,operations.closeConversation(user,conversationClose[1]));
     const propertyEdit=pathname.match(/^\/api\/properties\/(\d+)\/(edit|archive|delete)$/);
-    if(propertyEdit&&req.method==='POST')return json(res,200,{property:propertyEdit[2]==='edit'?management.editProperty(user,propertyEdit[1],await body(req)):propertyEdit[2]==='delete'?management.deleteProperty(user,propertyEdit[1]):management.archiveProperty(user,propertyEdit[1],await body(req))});
+    if(propertyEdit&&req.method==='POST'){const property=propertyEdit[2]==='edit'?management.editProperty(user,propertyEdit[1],await body(req)):propertyEdit[2]==='delete'?management.deleteProperty(user,propertyEdit[1]):management.archiveProperty(user,propertyEdit[1],await body(req));experience.listingAlerts();return json(res,200,{property});}
     const accountEdit=pathname.match(/^\/api\/admin\/users\/(\d+)$/);
     if(accountEdit&&req.method==='POST')return json(res,200,{user:await auth.updateUser(user,accountEdit[1],await body(req))});
     if(pathname==='/api/settings'){
@@ -117,18 +132,18 @@ async function main(){
     const applicationUpdate=pathname.match(/^\/api\/applications\/(\d+)\/status$/);
     if(applicationUpdate&&req.method==='POST')return json(res,200,{application:vacancies.updateApplication(user,applicationUpdate[1],await body(req))});
     const availability=pathname.match(/^\/api\/properties\/(\d+)\/availability$/);
-    if(availability&&req.method==='POST')return json(res,200,{property:management.setAvailability(user,availability[1],await body(req))});
+    if(availability&&req.method==='POST'){const property=management.setAvailability(user,availability[1],await body(req));experience.listingAlerts();return json(res,200,{property});}
     if(pathname==='/api/session'&&req.method==='GET')return json(res,200,{user});
     if(pathname==='/api/properties'){
      if(req.method==='GET')return json(res,200,{properties:management.listProperties(user)});
-     if(req.method==='POST')return json(res,201,{property:management.addProperty(user,await body(req))});
+     if(req.method==='POST'){const property=management.addProperty(user,await body(req));experience.listingAlerts();return json(res,201,{property});}
     }
     if(pathname==='/api/requests'){
      if(req.method==='GET')return json(res,200,{requests:management.listRequests(user)});
-     if(req.method==='POST')return json(res,201,{request:management.addRequest(user,await body(req))});
+     if(req.method==='POST'){const request=management.addRequest(user,await body(req));experience.maintenanceEvent(request,user);return json(res,201,{request});}
     }
     const requestAction=pathname.match(/^\/api\/requests\/(\d+)\/(status|cancel)$/);
-    if(requestAction&&req.method==='POST')return json(res,200,{request:management.updateRequest(user,requestAction[1],await body(req),requestAction[2]==='cancel')});
+    if(requestAction&&req.method==='POST'){const request=management.updateRequest(user,requestAction[1],await body(req),requestAction[2]==='cancel');experience.maintenanceEvent(request,user);return json(res,200,{request});}
     if(pathname==='/api/logout'&&req.method==='POST'){auth.logout(req);res.setHeader('Set-Cookie',auth.sessionCookie('',0));return json(res,200,{ok:true});}
     if(pathname==='/api/password'&&req.method==='POST'){const data=await body(req);await auth.changePassword(user,data.currentPassword,data.newPassword);res.setHeader('Set-Cookie',auth.sessionCookie('',0));return json(res,200,{ok:true});}
     if(pathname==='/api/admin/users'){
@@ -143,7 +158,7 @@ async function main(){
    if(pathname==='/index.html')return redirect(res,user?'/dashboard':'/login');
    if(['/login','/login.html','/signup','/signup.html'].includes(pathname)&&user)return redirect(res,dashboardTarget(requestURL.searchParams.get('next')));
    if(pathname==='/signup'||pathname==='/signup.html'){const params=new URLSearchParams(requestURL.search);params.set('mode','signup');return redirect(res,'/login?'+params.toString());}
-   const relative=pathname==='/'||pathname==='/home'?'/home.html':pathname==='/dashboard'?'/index.html':pathname==='/login'?'/login.html':pathname==='/vacancies'?'/vacancies.html':pathname;
+   const relative=pathname==='/'||pathname==='/home'?'/home.html':pathname==='/dashboard'?'/index.html':pathname==='/login'?'/login.html':pathname==='/vacancies'?'/vacancies.html':pathname==='/agents'?'/agents.html':pathname==='/account-access'?'/account-access.html':pathname;
    const file=path.resolve(root,'.'+decodeURIComponent(relative));
    if(!file.startsWith(root+path.sep))return json(res,403,{error:'Forbidden.'});
    fs.readFile(file,(error,data)=>{
@@ -155,6 +170,8 @@ async function main(){
   }catch(error){if(!res.headersSent)json(res,error.status||500,{error:error.status?error.message:'Something went wrong. Please try again.'});}
  });
  server.listen(process.env.PORT===undefined?3000:Number(process.env.PORT),'0.0.0.0',()=>console.log('App running on port '+server.address().port));
- for(const signal of ['SIGTERM','SIGINT'])process.on(signal,()=>server.close(()=>{auth.db.close();process.exit(0);}));
+ const delivery=setInterval(()=>notices.drain().catch(()=>{}),5000);delivery.unref();
+ const reminders=setInterval(()=>{try{notices.reminders();experience.listingAlerts();finance.syncPayments({role:'admin'}).catch(()=>{});for(const b of finance.budgets({role:'admin'})){if(b.spent_cents>b.amount_cents)notices.staffNotice({kind:'budget',title:'A property is over its monthly expense budget',link:'/dashboard#reports',key:'budget:'+b.property_id+':'+b.period});}}catch{}},3600000);reminders.unref();
+ for(const signal of ['SIGTERM','SIGINT'])process.on(signal,()=>{clearInterval(delivery);clearInterval(reminders);server.close(()=>{auth.db.close();process.exit(0);});});
 }
 main().catch(()=>{console.error('Startup failed. Check database access and administrator configuration.');process.exit(1);});
