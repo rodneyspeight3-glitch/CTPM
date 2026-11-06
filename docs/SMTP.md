@@ -1,6 +1,6 @@
-# Company email through mail.com SMTP
+# Automated email through mail.com SMTP
 
-The application uses Nodemailer and the existing SQLite email outbox. No email service is purchased by the app. mail.com's published SMTP settings are in its [Premium IMAP/SMTP guide](https://support.mail.com/premium/imap/server.html); the company mailbox must already allow SMTP. A free mailbox without SMTP access cannot be enabled by application code. No subscription upgrade is made automatically.
+The application uses Nodemailer and the existing SQLite email outbox. No email service is purchased by the app. mail.com's published SMTP settings are in its [Premium IMAP/SMTP guide](https://support.mail.com/premium/imap/server.html); the selected mailbox must already allow SMTP. A free mailbox without SMTP access cannot be enabled by application code. No subscription upgrade is made automatically.
 
 ## Configure privately in the existing Render service
 
@@ -9,14 +9,14 @@ The application uses Nodemailer and the existing SQLite email outbox. No email s
 | `SMTP_ENABLED` | `true` to select mail.com; `false` pauses external delivery |
 | `SMTP_HOST` | `smtp.mail.com` |
 | `SMTP_PORT` | `465` for TLS, or `587` for mandatory STARTTLS |
-| `SMTP_USER` | The complete dedicated company mailbox address |
-| `SMTP_FROM` | The same dedicated company mailbox address |
-| `SMTP_PASSWORD` | That company mailbox's SMTP password, entered privately in Render |
+| `SMTP_USER` | The complete owner-authorized sender mailbox address |
+| `SMTP_FROM` | The same owner-authorized sender mailbox address |
+| `SMTP_PASSWORD` | That mailbox's SMTP password, entered privately in Render |
 | `PUBLIC_APP_URL` | `https://ctpm.onrender.com`; Render's service URL is a fallback |
 
-Keep `ALLOW_PAID_INTEGRATIONS` unset or `false`. SMTP does not require that legacy flag and never activates Stripe or Resend. When mail.com is selected but incomplete, the app does not fall back to another provider. Never place a mailbox password in source control, chat, Management settings, or public agent profiles. Check that SMTP is enabled for the mailbox at mail.com; use its application-specific password if required by the account's two-factor settings.
+Keep `ALLOW_PAID_INTEGRATIONS` unset or `false`. SMTP does not require that legacy flag and never activates Stripe or Resend. When mail.com is selected but incomplete, the app does not fall back to another provider. Never place a mailbox password in source control, chat, Management settings, or public agent profiles. Check that SMTP is enabled for the selected mailbox at mail.com; use its application-specific password if required by the account's two-factor settings.
 
-Use the dedicated **company** mailbox as both login and sender. The app deliberately rejects mismatched SMTP login and From addresses to avoid using a personal login behind a public alias. Sender display name is **Come Together Property Management (No Reply)**. The company address remains visible in From, envelope, and message headers. TLS encrypts the SMTP connection; it does not hide sender identity or provide end-to-end message encryption. No personal mailbox address is used or embedded in the application.
+Use the same authorized mailbox as both login and sender. The app rejects mismatched SMTP login and From addresses. A dedicated company mailbox is recommended; the owner may instead choose a personal mailbox as both values. That choice makes the personal address visible to recipients. Sender display name is **Come Together Property Management (No Reply)**. The selected address remains visible in From, envelope, and message headers. TLS encrypts the SMTP connection; it does not hide sender identity or provide end-to-end message encryption. Mailbox addresses and passwords are configured privately in Render, rather than embedded in source.
 
 ## Automatic messages
 
@@ -50,6 +50,6 @@ Photo source: [Unsplash building photograph](https://images.unsplash.com/photo-1
 
 All automated delivery passes through a shared formatter, including welcome, verification, recovery, general notifications, application receipts, progress updates, and document requests. Existing queued mail receives the same policy when delivered. The sender display name includes **(No Reply)**, every body says **Please do not reply**, and help links point to portal messages and the public management contact section. The footer is added once, including during retries.
 
-The app sets `Auto-Submitted: auto-generated` and `X-Auto-Response-Suppress: All` to discourage automatic reply loops, preserving application unsubscribe headers. It keeps the authenticated company address and envelope for legitimate delivery and bounces. It does not invent `noreply@realtyagent.com`, redirect replies to an unrelated mailbox, or block a person from manually replying. A literal no-reply sender needs its own provider-authorized mailbox and matching credentials under the existing dedicated-mailbox rule.
+The app sets `Auto-Submitted: auto-generated` and `X-Auto-Response-Suppress: All` to discourage automatic reply loops, preserving application unsubscribe headers. It keeps the authenticated company address and envelope for legitimate delivery and bounces. It does not invent `noreply@realtyagent.com`, redirect replies to an unrelated mailbox, or block a person from manually replying. A literal no-reply sender needs its own provider-authorized mailbox and matching credentials under the existing matching-mailbox rule.
 
 When SMTP is configured, startup performs a TLS/login check without sending a test email. The check never blocks website startup. Outbox delivery waits during the check, and failures pause delivery with sanitized status codes. The admin service connections page shows the last successful connection check; a complete configuration alone is not proof of successful authentication or inbox delivery.
