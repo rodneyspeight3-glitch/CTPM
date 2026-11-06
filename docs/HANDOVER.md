@@ -55,7 +55,7 @@ Test restoration in a separate local/staging directory using Node.js 24:
 
 1. Copy the downloaded snapshot to a private staging location. Do not use the production path or reuse production webhook/email credentials.
 2. Open it with `node:sqlite` and run `PRAGMA integrity_check` and `PRAGMA foreign_key_check`. Expect `ok` and no foreign-key rows. Confirm representative account/listing/file counts and a retained document.
-3. Start the app with `NODE_ENV=test`, `PORT=3001`, `SEED_SHOWCASE_PROPERTIES=0`, `ALLOW_PAID_INTEGRATIONS=false`, and `DATABASE_PATH` pointing to that staging copy. Keep it bound to a private test environment. Use existing test account credentials from that snapshot, not passwords in source control.
+3. Start the app with `NODE_ENV=test`, `PORT=3001`, `SEED_SHOWCASE_PROPERTIES=0`, `ALLOW_PAID_INTEGRATIONS=false`, `SMTP_ENABLED=false`, and `DATABASE_PATH` pointing to that staging copy. Keep it bound to a private test environment. Use existing test account credentials from that snapshot, not passwords in source control.
 4. Check login, properties, an application and private file, a lease, and rent records. The backup is a point-in-time copy; new production edits are not in it.
 5. Document who holds the backup and when restoration was tested. A production restore requires a maintenance window, a fresh backup of the current disk, a stopped app, and restoring the chosen SQLite file at the same path without stale `-wal`/`-shm` sidecars. Reopen and verify before resuming use. Never overwrite an unrelated database.
 
@@ -66,3 +66,7 @@ The automated restoration test opens a downloaded snapshot in a separate tempora
 Run `npm ci` and `npm test` with Node.js 24 and Chromium (`CHROMIUM_PATH` when needed). Tests use temporary databases, synthetic identities/documents, and local provider doubles. Production checks are read-only: `/health` must report the exact deployed Git revision; public home, shared login, Apply, Agents, and private-route protection must respond correctly. Never submit synthetic IDs, applications, payments, or accounts to production just to test a release.
 
 See [RELEASE-50.md](RELEASE-50.md) for the feature index. Owner tasks still include accurate inventory/photos, contacts/payment instructions, approved lease/application and retention policies, recovery-code custody, backup custody/testing, and staff training. The app cannot supply these business decisions or real records automatically.
+
+## Company SMTP update
+
+The owner selected mail.com SMTP for welcome and application-progress email. Follow [SMTP.md](SMTP.md) to configure the dedicated company mailbox. The company sender is visible; a personal mailbox is not concealed behind a display name or alias. This feature requires the mailbox's existing SMTP access and private password; the app does not buy a mail.com plan. Core in-app updates and recovery codes remain available without it.

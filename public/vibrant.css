@@ -13,3 +13,4 @@ body,.home-page,.login-layout{background:var(--paper)}.sidebar{background:var(--
 
 #account-services>.notice-card{margin-top:20px}.service-page>div[id$="-body"]>.notice-card{margin-top:18px}
 [data-theme=dark] .notice-card p,[data-theme=dark] .session-row p{color:var(--muted)}[data-theme=dark] .eyebrow{color:#b6d9c9}[data-theme=dark] #toast{background:#83dace;color:#103c40}[data-theme=dark] .footer,[data-theme=dark] .home-footer{color:var(--muted)}
+html:not([data-theme=dark]) .sidebar{color:var(--ink)}html:not([data-theme=dark]) .sidebar .brand,html:not([data-theme=dark]) .sidebar .profile{color:var(--ink)}html:not([data-theme=dark]) .sidebar .brand small,html:not([data-theme=dark]) .sidebar .profile small,html:not([data-theme=dark]) .sidebar .nav-item:not(.active){color:var(--muted)}html:not([data-theme=dark]) .sidebar .nav-item:hover:not(.active){color:var(--green)}

@@ -28,11 +28,11 @@ Open http://localhost:3000. A fresh local database needs `ADMIN_EMAIL` and a uni
 
 The [50-improvement index](docs/RELEASE-50.md) identifies each control. The [handover guide](docs/HANDOVER.md) explains operating limits, owner setup, backup restoration, and validation.
 
-## No paid add-ons required
+## Hosting and email configuration
 
 Keep `ALLOW_PAID_INTEGRATIONS` unset or `false`. Recovery codes, private receipts, management identity confirmation, notifications, signing, PDF/CSV exports, and calendars run inside this service. OpenStreetMap directions are ordinary external links; video tours open the selected provider only after a click.
 
-Payments follow staff-configured instructions. Staff record money actually received; the app does not debit accounts or reconcile bank statements automatically. Existing Render hosting and persistent-disk charges remain the owner's current subscription. No external service is purchased or activated by this release.
+Payments follow staff-configured instructions. Staff record money actually received; the app does not debit accounts or reconcile bank statements automatically. Existing Render hosting and persistent-disk charges remain the owner's current subscription. No external subscription is purchased by the app. Owner-selected mail.com SMTP requires an existing SMTP-enabled company mailbox; see the setup below.
 
 Legacy optional Stripe and Resend integrations are retained for existing history. They require explicit `ALLOW_PAID_INTEGRATIONS=true` **and** the relevant secret configuration before enabling new checkout/email. Existing signed webhooks can reconcile prior transactions. Credentials belong only in Render Environment. The default handover requires none of them.
 
@@ -43,6 +43,14 @@ Legacy optional Stripe and Resend integrations are retained for existing history
 | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | Optional hosted checkout and signed raw webhooks. |
 
 Do not enable legacy providers without separately verifying delivery and the full checkout/refund/failure flow in a staging environment. A redirect never confirms payment. The app retains original and resident-signed lease PDFs; it neither drafts contracts nor supplies management signatures. Emergency dispatch, SMS/push, automatic recurring billing, and offsite backups are not configured.
+
+## Company SMTP and automated messages
+
+[SMTP setup and delivery guide](docs/SMTP.md) documents the dedicated company sender, required Render variables, TLS, and verification. SMTP is separately enabled with `SMTP_ENABLED=true`; keep legacy paid integrations off. The mailbox password belongs only in Render Environment. A sender display name does not conceal the company address in email headers. A personal SMTP login is not used behind an alias.
+
+New signup creates an in-app welcome and, when configured, a welcome/verification email. Opted-in applicants receive a private receipt, actual status changes, and generic document-request emails, with unsubscribe controls. Queue retries and suppression preserve private records. Admin service connections shows configuration status and an SMTP connection check. mail.com access may require Premium; the app does not purchase or upgrade an account.
+
+The white page background now uses locally served real-building photography in a continuous left-to-right loop, with aligned repeating tiles, pause controls, and reduced-motion support. Hero photos remain unchanged. [Asset source and license](docs/SMTP.md#background-photography).
 
 ## Data and deployment
 

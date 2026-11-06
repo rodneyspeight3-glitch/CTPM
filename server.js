@@ -7,6 +7,7 @@ const {createVacancies}=require('./lib/vacancies');
 const {createSettings}=require('./lib/settings');
 const {createOperations}=require('./lib/operations');
 const {seedShowcase}=require('./lib/showcase');
+const {createApplicationMail}=require('./lib/application-mail');
 const {createNotifications}=require('./lib/notifications');
 const {createAccountServices}=require('./lib/account-services');
 const {createResidentServices}=require('./lib/resident-services');
@@ -24,13 +25,14 @@ const root=path.join(__dirname,'public');
 async function main(){
  const auth=await createAuth(process.env.DATABASE_PATH||path.join(__dirname,'.data','app.sqlite'));
  const management=createManagement(auth.db);seedShowcase(auth.db);
- let resident;const vacancies=createVacancies(auth.db,{onEvent:(id,type)=>resident.applicationEvent(id,type)});
+ let resident;const vacancies=createVacancies(auth.db,{onEvent:(...args)=>resident.applicationEvent(...args)});
  const settings=createSettings(auth.db);
  const operations=createOperations(auth.db);
  const notices=createNotifications(auth.db),accounts=createAccountServices(auth.db,notices);
- resident=createResidentServices(auth.db,notices);
+ const applicationMail=createApplicationMail(auth.db,notices);
+ resident=createResidentServices(auth.db,notices,{applicationMail});
  const finance=createFinance(auth.db,notices),signatures=createSignatures(auth.db,notices),experience=createExperience(auth.db,notices),agents=createAgents(auth.db);
- const freeAccess=createFreeAccess(auth.db,operations,notices),portfolio=createPortfolioTools(auth.db,management,resident),workspace=createWorkspace(auth.db,notices),handover=createHandover(auth.db,operations,freeAccess,settings);
+ const freeAccess=createFreeAccess(auth.db,operations,notices,applicationMail),portfolio=createPortfolioTools(auth.db,management,resident),workspace=createWorkspace(auth.db,notices),handover=createHandover(auth.db,operations,freeAccess,settings);
  const json=(res,status,data)=>{res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(data));};
  const redirect=(res,to)=>{res.writeHead(302,{Location:to,'Cache-Control':'no-store'}).end();};
  function dashboardTarget(value){try{const target=new URL(value,'https://ctpm.local');if(target.origin==='https://ctpm.local'&&target.pathname==='/dashboard')return target.pathname+target.search+target.hash;}catch{}return '/dashboard';}
@@ -40,7 +42,7 @@ async function main(){
   const bytes=await rawBody(req,maxSize);try{const parsed=JSON.parse(bytes.toString('utf8'));if(!parsed||Array.isArray(parsed)||typeof parsed!=='object')throw Error();return parsed;}catch{const e=new Error('Invalid request.');e.status=400;throw e;}
  }
  const services=createServiceRoutes({accounts,notices,resident,finance,signatures,experience,agents,body,rawBody,json});
- const handoverRoutes=createHandoverRoutes({vacancies,freeAccess,portfolio,workspace,handover,notices,body,json});
+ const handoverRoutes=createHandoverRoutes({applicationMail,vacancies,freeAccess,portfolio,workspace,handover,notices,body,json});
  const server=http.createServer(async(req,res)=>{
   res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('X-Frame-Options','DENY');res.setHeader('Referrer-Policy','same-origin');
   res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob:; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'");
@@ -74,7 +76,8 @@ async function main(){
      if(user)return json(res,409,{error:'Sign out before creating another account.'});
      const result=await auth.signup(await body(req),req);
      if(!result)return json(res,503,{error:'Account created. Please sign in to continue.'});
-     if(accounts.status().emailEnabled)try{accounts.requestVerification(result.user,req);}catch{}
+     accounts.welcome(result.user);
+     if(accounts.status().emailEnabled)try{accounts.requestVerification(result.user,req,{welcome:true});}catch{}
      res.setHeader('Set-Cookie',result.cookie);return json(res,201,{user:result.user});
     }
     if(pathname==='/api/vacancies'&&req.method==='GET')return json(res,200,{properties:vacancies.listVacancies()});
@@ -167,7 +170,7 @@ async function main(){
    if(pathname==='/index.html')return redirect(res,user?'/dashboard':'/login');
    if(['/login','/login.html','/signup','/signup.html'].includes(pathname)&&user)return redirect(res,dashboardTarget(requestURL.searchParams.get('next')));
    if(pathname==='/signup'||pathname==='/signup.html'){const params=new URLSearchParams(requestURL.search);params.set('mode','signup');return redirect(res,'/login?'+params.toString());}
-   const relative=pathname==='/'||pathname==='/home'?'/home.html':pathname==='/dashboard'?'/index.html':pathname==='/login'?'/login.html':pathname==='/vacancies'?'/vacancies.html':pathname==='/agents'?'/agents.html':pathname==='/account-access'?'/account-access.html':pathname==='/apply'?'/apply.html':pathname==='/application-status'?'/application-status.html':pathname;
+   const relative=pathname==='/'||pathname==='/home'?'/home.html':pathname==='/dashboard'?'/index.html':pathname==='/login'?'/login.html':pathname==='/vacancies'?'/vacancies.html':pathname==='/agents'?'/agents.html':pathname==='/account-access'?'/account-access.html':pathname==='/apply'?'/apply.html':pathname==='/application-status'?'/application-status.html':pathname==='/application-email'?'/application-email.html':pathname;
    const file=path.resolve(root,'.'+decodeURIComponent(relative));
    if(!file.startsWith(root+path.sep))return json(res,403,{error:'Forbidden.'});
    fs.readFile(file,(error,data)=>{
