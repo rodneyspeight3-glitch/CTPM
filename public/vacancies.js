@@ -22,11 +22,11 @@ select('#close-application').onclick=()=>dialog.close();
 dialog.addEventListener('close',()=>applicationFocus?.focus());
 function applyFor(p){
  if(!dialog.open)applicationFocus=document.activeElement;
- select('#application-content').innerHTML=`<p class="eyebrow">RENTAL APPLICATION FORM</p><h2 id="application-title">Apply for ${escapeText(p.name)}</h2><p>${escapeText(p.address)} · ${formatMoney(p.price)} / month</p><form id="vacancy-application-form">${rentalApplicationMarkup()}<p id="application-error" role="alert"></p><p id="application-progress" role="status"></p><button class="button green">Submit application →</button></form>`;
- const form=select('#vacancy-application-form');prepareRentalApplication(form);
+ select('#application-content').innerHTML=`<p class="eyebrow">RENTAL APPLICATION FORM</p><h2 id="application-title">Apply for ${escapeText(p.name)}</h2><p>${escapeText(p.address)} · ${formatMoney(p.price)} / month</p><form id="vacancy-application-form">${rentalApplicationMarkup()}<p id="application-error" role="alert"></p><p id="application-progress" role="status"></p><div class="application-submit-row"><button type="submit" class="button green">Submit application →</button><button type="button" class="text-link" id="cancel-application">Cancel</button></div></form>`;
+ const form=select('#vacancy-application-form');prepareRentalApplication(form);select('#cancel-application').onclick=()=>dialog.close();
  if(!dialog.open)dialog.showModal();
  form.onsubmit=async event=>{
-  event.preventDefault();const button=form.querySelector('button');button.disabled=true;select('#application-error').textContent='';select('#application-progress').textContent='Preparing and submitting your documents…';
+  event.preventDefault();const button=form.querySelector('[type=submit]');button.disabled=true;select('#application-error').textContent='';select('#application-progress').textContent='Preparing and submitting your documents…';
   try{const data=await rentalApplicationData(form);const result=await vacancyAPI('/api/vacancies/'+p.id+'/applications',{method:'POST',body:JSON.stringify(data)});if(select('#vacancy-application-form')!==form)return;select('#application-content').innerHTML=`<h2 id="application-title">Application received.</h2><div class="application-success"><p>${escapeText(result.message)}</p></div>`;const current=new URL(location.href);current.searchParams.delete('property');history.replaceState(null,'',current.pathname+current.search+current.hash);}
   catch(error){if(select('#vacancy-application-form')!==form)return;select('#application-error').textContent=error.message;select('#application-progress').textContent='';button.disabled=false;}
  };

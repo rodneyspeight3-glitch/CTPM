@@ -94,6 +94,7 @@ let applications=[];
 function renderDashboard(){
  const available=properties.filter(p=>!p.isPreview&&p.available);
  $('#featured').innerHTML=available.length?available.map(card).join(''):'<div class="empty-state dashboard-empty"><h3>No available homes right now.</h3><p>Check back for new vacancies.</p></div>';
+ renderAttentionPanel();
  $('#available-count').textContent=available.length;
  $('#portfolio-count').textContent=properties.filter(p=>!p.isPreview&&!p.archived).length;
  $('#maintenance-open').textContent=requests.filter(r=>['Submitted','In progress'].includes(r.status)).length;
@@ -106,13 +107,17 @@ document.addEventListener('click',async event=>{
 });
 async function loadApplications(){
  if(!['agent','admin'].includes(currentUser?.role))return;
- try{applications=(await api('/api/applications')).applications;renderApplications();renderDashboard();$('#applications-error').textContent='';}catch(error){$('#applications-error').textContent=error.message;}
+ try{applications=(await api('/api/applications')).applications;const selected=$('#application-property').value;$('#application-property').innerHTML='<option value="all">All properties</option>'+[...new Map(applications.map(a=>[a.property_id,a.property_name])).entries()].map(([id,name])=>`<option value="${id}">${escapeHTML(name)}</option>`).join('');$('#application-property').value=[...$('#application-property').options].some(o=>o.value===selected)?selected:'all';renderApplications();renderDashboard();$('#applications-error').textContent='';}catch(error){$('#applications-error').textContent=error.message;}
 }
 function renderApplications(){
- const visible=applications.filter(a=>$('#application-status').value==='all'||a.status===$('#application-status').value);
+ const query=$('#application-search').value.trim().toLowerCase(),property=$('#application-property').value,status=$('#application-status').value,sort=$('#application-sort').value;
+ const visible=applications.filter(a=>(status==='all'||a.status===status)&&(property==='all'||a.property_id===Number(property))&&[a.name,a.email,a.phone,a.property_name].some(value=>value.toLowerCase().includes(query)));
+ visible.sort((a,b)=>sort==='oldest'?a.id-b.id:sort==='move-in'?a.move_in.localeCompare(b.move_in)||b.id-a.id:b.id-a.id);
+ $('#application-results').textContent=visible.length+' of '+applications.length+' applications';
+ $('#application-pipeline').innerHTML=['Submitted','Reviewing','Contacted','Closed'].map(value=>`<button type="button" data-application-status="${value}" aria-pressed="${status===value}"><span>${value}</span><strong>${applications.filter(a=>a.status===value).length}</strong></button>`).join('');
  $('#applications-list').innerHTML=visible.length?visible.map(a=>`<article class="request-row"><p class="eyebrow">${escapeHTML(a.status.toUpperCase())} · ${a.property_available?'AVAILABLE PROPERTY':'UNAVAILABLE PROPERTY'}</p><h3>${escapeHTML(a.name)} · ${escapeHTML(a.property_name)}</h3><p>${escapeHTML(a.email)} · ${escapeHTML(a.phone)}</p><p>Preferred move-in: ${escapeHTML(a.move_in)} · Household: ${a.occupants} · ${a.document_count} document(s)</p><p>${escapeHTML(a.message)}</p>${a.staff_note?`<div class="resident-update"><strong>Staff note</strong><p>${escapeHTML(a.staff_note)}</p></div>`:''}<div class="request-meta"><span>Submitted ${escapeHTML(new Date(a.created_at).toLocaleString())}</span><button class="text-link" data-review-application="${a.id}">Review application</button></div></article>`).join(''):'<div class="empty-state"><h3>No matching applications.</h3><p>Applications submitted through available property listings will appear here.</p></div>';
 }
-$('#application-status').onchange=renderApplications;
+$('#application-status').onchange=renderApplications;$('#application-search').oninput=renderApplications;$('#application-property').onchange=renderApplications;$('#application-sort').onchange=renderApplications;document.addEventListener('click',event=>{const button=event.target.closest('[data-application-status]');if(button){$('#application-status').value=$('#application-status').value===button.dataset.applicationStatus?'all':button.dataset.applicationStatus;renderApplications();}});
 $('#refresh-applications').onclick=loadApplications;
 async function loadSavedHomes(){
  if(currentUser?.role!=='tenant')return;
@@ -128,3 +133,18 @@ document.addEventListener('click',async event=>{
  const id=Number(button.dataset.saveHome),saved=!savedHomes.some(p=>p.id===id);
  try{await api('/api/properties/'+id+'/save',{method:'POST',body:JSON.stringify({saved})});await loadSavedHomes();toast(saved?'Home saved to your shortlist.':'Home removed from your shortlist.');}catch(error){toast(error.message);}finally{button.disabled=false;}
 });
+
+function renderAttentionPanel(){
+ if(!currentUser)return;
+ const today=new Date().toISOString().slice(0,10),soon=new Date(Date.now()+60*86400000).toISOString().slice(0,10),staff=['admin','agent'].includes(currentUser.role),items=[];
+ const urgent=requests.filter(r=>r.priority==='Urgent'&&['Submitted','In progress'].includes(r.status));
+ const overdue=rentCharges.filter(c=>c.due_on<today&&c.amount_cents>c.paid_cents);
+ const renewals=leaseRecords.filter(l=>l.status==='Active'&&l.ends_on<=soon);
+ const submitted=applications.filter(a=>a.status==='Submitted');
+ if(urgent.length)items.push(['requests','Repair priorities',urgent.length+' urgent request'+(urgent.length===1?' needs':'s need')+' attention.','coral']);
+ if(overdue.length)items.push(['ledger','Keep rent on track',money(overdue.reduce((sum,c)=>sum+c.amount_cents-c.paid_cents,0)/100)+' outstanding on overdue charges.','coral']);
+ if(renewals.length)items.push(['leases','Plan the next chapter',renewals.length+' active lease'+(renewals.length===1?' is':'s are')+' approaching or past the end date.','lime']);
+ if(staff&&submitted.length)items.push(['applications','Meet your next residents',submitted.length+' new application'+(submitted.length===1?' is':'s are')+' ready to review.','lime']);
+ $('#dashboard-attention').innerHTML=items.length?items.map(([page,title,description,color])=>`<button class="attention-item ${color}" data-attention-page="${page}"><span>${escapeHTML(title)}</span><strong>${escapeHTML(description)}</strong><span class="attention-arrow" aria-hidden="true">→</span></button>`).join(''):'<div class="attention-clear"><span aria-hidden="true">✦</span><div><strong>A little breathing room.</strong><p>No time-sensitive items in your current records.</p></div></div>';
+}
+document.addEventListener('click',event=>{const button=event.target.closest('[data-attention-page]');if(button)go(button.dataset.attentionPage);});

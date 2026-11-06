@@ -79,3 +79,9 @@ Sign-in and tenant registration now share `/login`, with registration at `/login
 This release adds application details, a form-version flag, private supporting-document storage, and document-removal audit records to the existing SQLite database. No database reset is needed. Keep the same persistent disk and `DATABASE_PATH`; earlier applications and reviews remain available. Income proof and photo ID are required for new applications, with optional rental-history and additional files (PDF/JPEG/PNG, 2 MB each, five files total). Only agents and administrators can view full submissions and download or remove documents. Credit is self-reported and the app makes no eligibility decisions.
 
 Verify the full form on an available listing and test submissions in a staging environment using artificial documents. Verify staff-only review/download access, retention/removal with a reason, and preservation after redeploy. Application documents are stored in the database and its backups; protect them and apply your document-retention policy. Do not submit test identity documents to production.
+
+## Brand, application guidance, and dashboard priorities release
+
+Deploy this update to the existing service with the same disk and `DATABASE_PATH`. Additive application-review event tables preserve existing applications, accounts, documents, and leases. New submissions use form version 3: all answers are required except other income and pet information. Rental-history and additional-document uploads remain optional; income proof and photo ID remain required. Historical submissions are unchanged.
+
+Verify the new logo/styles on `/` and `/login`, application completion and answer preview on an available listing, staff application search/status/property filters, review history, and dashboard reminders. Shared assets use version 11. No new environment variables or external services are required.

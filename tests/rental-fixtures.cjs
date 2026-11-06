@@ -5,9 +5,9 @@ function rentalApplication(overrides={}){
 async function fillRentalApplication(page,overrides={}){
  const data=rentalApplication(overrides),form=page.locator('#vacancy-application-form');
  for(const key of ['name','email','phone','currentAddress','leaseDuration','moveIn','rentInterruption','occupants','employer','jobTitle','monthlyIncome','employmentLength','otherIncome','landlordName','landlordPhone','leavingReason','message'])await form.locator('[name="'+key+'"]').fill(String(data[key]));
- if(data.creditScoreUnknown)await form.locator('[name="creditScoreUnknown"]').check();else await form.locator('[name="creditScore"]').fill(String(data.creditScore));
- for(const key of ['evicted','bankruptcy','hasPets','smokes'])await form.locator('[name="'+key+'"]').selectOption(String(data[key]));
- if(data.hasPets)await form.locator('[name="petDetails"]').fill(data.petDetails);
+ await form.locator('[name="creditScore"]').fill(String(data.creditScore));
+ for(const key of ['evicted','bankruptcy','smokes'])await form.locator('[name="'+key+'"]').selectOption(String(data[key]));
+ await form.locator('[name="hasPets"]').selectOption(data.hasPets==null?'':String(data.hasPets));await form.locator('[name="petDetails"]').fill(data.petDetails||'');
  for(const [name,kind] of [['incomeProof','income'],['photoId','photo_id']])await form.locator('[name="'+name+'"]').setInputFiles({name:data.documents.find(d=>d.kind===kind).name,mimeType:'application/pdf',buffer:pdf});
  await form.locator('[name="consent"]').check();
 }

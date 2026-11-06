@@ -14,7 +14,7 @@ test('complete applications and uploads validate atomically, remain private, sur
   for(const role of ['agent','tenant']){const u={name:role,email:role+'@example.test',password:app.credentials.password,role};assert.equal((await post('/api/admin/users',admin,u)).status,201);cookies[role]=await login(u);}
   const property=(await (await post('/api/properties',admin,inventory[0])).json()).property,url='/api/vacancies/'+property.id+'/applications',data=rentalApplication({name:'Applicant <script>alert(1)</script>',hasPets:true,petDetails:'One indoor cat <test>'});
   const badDoc=changes=>({...data.documents[0],...changes});
-  for(const changes of [{currentAddress:''},{leaseDuration:''},{creditScore:299},{creditScore:851},{creditScore:'700'},{monthlyIncome:-1},{monthlyIncome:0.001},{rentInterruption:''},{employer:''},{landlordPhone:'abc'},{evicted:'false'},{bankruptcy:undefined},{smokes:null},{hasPets:undefined},{petDetails:''},{documents:[]},{documents:[data.documents[0]]},{documents:[badDoc({kind:'additional'}),badDoc({kind:'income'})]},{documents:[badDoc({mime:'text/html'}),data.documents[1]]},{documents:[badDoc({data:Buffer.from('<script>bad</script>').toString('base64')}),data.documents[1]]},{documents:[badDoc({data:Buffer.alloc(2097153,65).toString('base64')}),data.documents[1]]},{documents:Array(6).fill(data.documents[0])},{documents:[badDoc({name:'bad\r\nname.pdf'}),data.documents[1]]}]){
+  for(const changes of [{currentAddress:''},{leaseDuration:''},{creditScore:299},{creditScore:851},{creditScore:'700'},{monthlyIncome:-1},{monthlyIncome:0.001},{rentInterruption:''},{employer:''},{landlordPhone:'abc'},{evicted:'false'},{bankruptcy:undefined},{smokes:null},{hasPets:'yes'},{creditScore:null},{creditScoreUnknown:true},{message:''},{message:undefined},{landlordName:''},{leavingReason:''},{jobTitle:''},{employmentLength:''},{documents:[]},{documents:[data.documents[0]]},{documents:[badDoc({kind:'additional'}),badDoc({kind:'income'})]},{documents:[badDoc({mime:'text/html'}),data.documents[1]]},{documents:[badDoc({data:Buffer.from('<script>bad</script>').toString('base64')}),data.documents[1]]},{documents:[badDoc({data:Buffer.alloc(2097153,65).toString('base64')}),data.documents[1]]},{documents:Array(6).fill(data.documents[0])},{documents:[badDoc({name:'bad\r\nname.pdf'}),data.documents[1]]}]){
    const result=await post(url,null,{...data,...changes});assert.equal(result.status,400,JSON.stringify(Object.keys(changes)));
   }
   assert.equal((await get('/api/applications',admin)).applications.length,0);
@@ -22,7 +22,7 @@ test('complete applications and uploads validate atomically, remain private, sur
   const list=(await get('/api/applications',cookies.agent)).applications;assert.equal(list.length,1);assert.equal(list[0].document_count,2);assert.equal('details' in list[0],false);assert.equal('documents' in list[0],false);
   const id=list[0].id,fullPath='/api/applications/'+id;
   const detail=(await get(fullPath,admin)).application;
-  assert.equal(detail.form_version,2);assert.equal(detail.details.monthlyIncomeCents,450025);assert.equal(detail.details.creditScore,700);assert.equal(detail.details.petDetails,'One indoor cat <test>');assert.equal('data' in detail.documents[0],false);
+  assert.equal(detail.form_version,3);assert.equal(detail.details.monthlyIncomeCents,450025);assert.equal(detail.details.creditScore,700);assert.equal(detail.details.petDetails,'One indoor cat <test>');assert.equal('data' in detail.documents[0],false);
   const download='/api/application-documents/'+detail.documents[0].id+'/download',remove=download.replace('/download','/delete');
   for(const path of [fullPath,download]){assert.equal((await call(path)).status,401);assert.equal((await call(path,cookies.tenant)).status,403);}
   assert.equal((await post(remove,cookies.tenant,{reason:'No longer needed'})).status,403);
@@ -31,10 +31,17 @@ test('complete applications and uploads validate atomically, remain private, sur
   assert.equal((await call(download,cookies.agent,'HEAD')).status,200);
   const repeated=await post(url,null,rentalApplication({name:'Overwritten',documents:[badDoc({name:'replacement.pdf'}),data.documents[1]]}));assert.equal(repeated.status,200);assert.deepEqual(Object.keys(await repeated.json()),['message']);
   const unchanged=(await get(fullPath,admin)).application;assert.equal(unchanged.name,data.name);assert.equal(unchanged.documents.length,2);assert.equal(unchanged.documents[0].name,'test-income.pdf');
-  // First-time renters, non-employed applicants, and unknown credit scores can still apply.
-  assert.equal((await post(url,null,rentalApplication({email:'first-rental@example.test',creditScore:null,creditScoreUnknown:true,employer:'N/A',jobTitle:'N/A',employmentLength:'N/A',monthlyIncome:0,landlordName:'N/A',landlordPhone:'N/A',leavingReason:'First rental'}))).status,200);
+  // Optional income/pet answers and optional document uploads can be omitted entirely.
+  assert.equal((await post(url,null,rentalApplication({email:'optional@example.test',otherIncome:undefined,hasPets:undefined,petDetails:undefined}))).status,200);
+  assert.equal(detail.reviewEvents.length,1);assert.equal(detail.reviewEvents[0].status,'Submitted');
+  const review={status:'Reviewing',note:'Staff review started <test>.',expectedUpdatedAt:detail.updated_at};
+  assert.equal((await post(fullPath+'/status',cookies.agent,review)).status,200);
+  const reviewed=(await get(fullPath,admin)).application;assert.equal(reviewed.reviewEvents.length,2);assert.equal(reviewed.reviewEvents[0].staff_name,'agent');
+  assert.equal((await post(fullPath+'/status',admin,{...review,status:'Closed'})).status,409);
+  assert.equal((await post(fullPath+'/status',admin,{...review,expectedUpdatedAt:reviewed.updated_at})).status,200);
+  assert.equal((await get(fullPath,admin)).application.reviewEvents.length,2);
   await app.stop();base=await app.start();
-  assert.equal((await get(fullPath,admin)).application.documents.length,2);assert.deepEqual(Buffer.from(await (await call(download,admin)).arrayBuffer()),pdf);
+  assert.equal((await get(fullPath,admin)).application.documents.length,2);assert.equal((await get(fullPath,admin)).application.reviewEvents.length,2);assert.deepEqual(Buffer.from(await (await call(download,admin)).arrayBuffer()),pdf);
   assert.equal((await post(remove,admin,{reason:''})).status,400);assert.equal((await call(download,admin)).status,200);
   assert.equal((await post(remove,cookies.agent,{reason:'Review complete; retention period ended.'})).status,200);
   assert.equal((await call(download,admin)).status,404);

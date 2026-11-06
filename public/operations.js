@@ -8,6 +8,7 @@ async function loadOperations(){
  $('#new-message').hidden=false;$('#new-message').textContent=staffUser()?'＋ Message resident':'＋ New message';renderOperations();
 }
 function renderOperations(){
+ renderAttentionPanel();
  const staff=staffUser(),activeHome=leaseRecords.find(l=>l.status==='Active');
  $('#active-leases-count').textContent=leaseRecords.filter(l=>l.status==='Active').length;
  $('#my-home-panel').hidden=staff;$('#my-home-panel').innerHTML=activeHome?`<p class="eyebrow">YOUR HOME</p><h2>${escapeHTML(activeHome.property_name)}</h2><p>${escapeHTML(activeHome.address)}</p><p>${dollars(activeHome.monthly_rent_cents)} / month · Lease through ${activeHome.ends_on}</p><button class="text-link" id="my-home-lease">View lease record →</button>`:'<h3>Your home will appear here.</h3><p>Management can assign your property and lease record.</p>';
