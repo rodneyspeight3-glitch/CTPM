@@ -1,4 +1,4 @@
-let companySettings=null;
+let companySettings=null,settingsFillVersion=0;
 function fillSettings(settings){
  const form=$('#settings-form');
  for(const key of ['companyName','contactEmail','contactPhone','paymentLabel','paymentUrl','paymentAccountName','paymentBankName','paymentAccountDetails','paymentInstructions'])form.elements[key].value=settings[key];
@@ -6,10 +6,10 @@ function fillSettings(settings){
  $('#settings-updated').textContent=settings.updatedAt?'Last updated '+new Date(settings.updatedAt).toLocaleString():'No management details have been saved yet.';
 }
 async function loadSettings(fill=false){
- const form=$('#settings-form');if(fill)form.inert=true;
+ const form=$('#settings-form'),version=fill?++settingsFillVersion:0;if(fill){form.inert=true;form.querySelectorAll('input,textarea,select,button').forEach(control=>control.disabled=true);}
  try{const {settings}=await api('/api/settings');companySettings=settings;
- if(fill)fillSettings(settings);return settings;
- }finally{if(fill)form.inert=!form.dataset.revision;}
+ if(fill&&version===settingsFillVersion)fillSettings(settings);return settings;
+ }finally{if(fill&&version===settingsFillVersion){const disabled=!form.dataset.revision;form.inert=disabled;form.querySelectorAll('input,textarea,select,button').forEach(control=>control.disabled=disabled);}}
 }
 $('#reload-settings').onclick=async()=>{try{await loadSettings(true);$('#settings-error').textContent='';toast('Current settings loaded.');}catch(error){$('#settings-error').textContent=error.message;}};
 $('#settings-form').onsubmit=async event=>{

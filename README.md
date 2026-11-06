@@ -6,11 +6,17 @@ Agents and admins can add properties with rent, address, bedroom/bathroom counts
 
 ## Public website and accounts
 
-The public home page is `/` (also `/home`), with services, saved management contacts, all available properties, and six clearly labeled fictional sample homes. Samples demonstrate the design and never accept applications. Actual vacancies come from properties published by agents/admins; adding a property to this repository does not create or publish real inventory. Use **Add a property** from the home page or **Add property** on the staff dashboard to enter actual listings. The home-page shortcut preserves its destination through sign-in and opens the property form for staff.
+The public home page is `/` (also `/home`), with services, saved management contacts, all available properties, and six clearly labeled fictional sample homes. Samples demonstrate the design and never accept applications. Actual vacancies come from properties published by agents/admins; adding a property to this repository does not create or publish real inventory. Only agents and administrators see **Add property**, inside their dashboard and property portfolio. Public home and vacancies pages contain no property-creation controls; tenants cannot create properties through the UI or API.
 
 New prospective tenants can register at `/signup` with a name, email, password of 16–128 characters, password confirmation, and acknowledgement of the displayed account data-use notice. Registration is rate limited and always creates Tenant access; Agent and Admin accounts remain administrator-created. It does not approve an application, reserve a home, or create a lease. Registered applicants can message management, apply for vacancies, and see their own dashboard. Payment account details remain hidden for self-registered applicants until management assigns a lease. No email verification or automated password recovery service is connected.
 
 Everyone signs in at `/login` with email/password; the server detects the stored role. Successful sign-in opens `/dashboard`, with role-specific navigation and records. Existing root `/#page` portal bookmarks forward to `/dashboard#page`. Property applications are also available directly from the home page and `/vacancies`, with no account required.
+
+## Finding and saving homes
+
+The home page, vacancies directory, and portal portfolio support bedroom and maximum-rent filters plus sorting by newest, rent, or property name. Clear filters resets the search. Each real available property has public details with its address, photograph, rent, room counts, application action, and a shareable `/vacancies?listing=<id>` link. Closed listings stop accepting applications and no longer load public details.
+
+Tenants can use **Save home** on available portal listings and revisit **Saved homes** from their own dashboard. Shortlists are stored per account in SQLite. Saving twice does not duplicate a home. When a listing closes, the saved card is marked unavailable and keeps only the previously public snapshot; it does not reveal later private edits. Tenants can remove saved homes at any time. Staff use their management portfolio rather than a tenant shortlist.
 
 ## Daily workflow
 
@@ -51,7 +57,7 @@ Agents and admins use **Applications** to privately review applicant contact det
 
 Agents and administrators can update **Management settings** at any time. Save the company name, contact email/phone, payment heading, HTTPS payment portal link, account holder, bank/provider, account/reference details, and instructions. Contact information is public on the vacancies page. Payment details are shown only to signed-in users through **Rent & payments**. This stores and displays instructions; payments and receipts remain with the linked provider. Never store provider login passwords, card data, or API keys in these fields.
 
-Changes are persistent in SQLite and recorded with the editing staff account and time. A stale edit is rejected instead of overwriting another staff member's update; use **Reload saved settings** to load the current version. The **Contact management** buttons open saved email/phone links. Before contact or payment information has been saved, the app explains what is missing.
+Changes are persistent in SQLite and recorded with the editing staff account and time. Settings controls wait for the latest load to finish, and delayed responses do not replace in-progress edits. A stale edit is rejected instead of overwriting another staff member's update; use **Reload saved settings** to load the current version. The **Contact management** buttons open saved email/phone links. Before contact or payment information has been saved, the app explains what is missing.
 
 All portal pages have `/dashboard#page` links that survive reload and browser back/forward navigation. Staff-only pages are guarded in the UI and API. Notifications show current maintenance/application totals with links to the relevant pages. Resources contain expandable guidance. Signed lease PDFs are privately downloadable from Leases. Email recovery and external payment processing remain separate integrations; administrators can reset access through Manage accounts.
 

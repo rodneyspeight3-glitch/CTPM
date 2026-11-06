@@ -22,6 +22,7 @@ $('#password-form').onsubmit=async event=>{event.preventDefault();const data=Obj
  $('#add-property').hidden=user.role==='tenant';
  $('#applications-nav').hidden=user.role==='tenant';
  $('#settings-nav').hidden=user.role==='tenant';
+ document.querySelectorAll('[data-tenant-only]').forEach(el=>el.hidden=user.role!=='tenant');
  document.querySelectorAll('[data-staff-only]').forEach(el=>el.hidden=user.role==='tenant');
  for(const id of ['#new-request','#notice-request','#request-page-button'])$(id).hidden=user.role!=='tenant';
  if(user.role!=='tenant')$('#requests .page-heading p:not(.eyebrow)').textContent='Track tenant requests and share updates with residents.';
@@ -36,8 +37,11 @@ $('#password-form').onsubmit=async event=>{event.preventDefault();const data=Obj
   $('#overview .page-heading p:not(.eyebrow)').textContent=user.role==='admin'?'Bring your team and residents together. Manage account access and explore your property portfolio.':'Your property portfolio and resident resources, together in one workspace.';
   $('#new-request').hidden=true;
  }
- await Promise.all([loadHomes(),loadRequests(),loadApplications(),loadSettings(true),loadOperations()]);
+ const initialRouteVersion=portalRouteVersion;
+ await Promise.all([loadHomes(),loadRequests(),loadApplications(),loadSettings(true),loadOperations(),loadSavedHomes()]);
  const newProperty=new URLSearchParams(location.search).get('newProperty')==='1';
- go(newProperty?'homes':location.hash.slice(1)||'overview',false);
- if(newProperty){history.replaceState(null,'','/dashboard#homes');if(['admin','agent'].includes(user.role))propertyForm();else toast('Property creation is available to agents and administrators.');}
+ if(portalRouteVersion===initialRouteVersion){
+  go(newProperty?'homes':location.hash.slice(1)||'overview',false);
+  if(newProperty){history.replaceState(null,'','/dashboard#homes');if(['admin','agent'].includes(user.role))propertyForm();else toast('Property creation is available to agents and administrators.');}
+ }else if(newProperty)history.replaceState(null,'','/dashboard'+location.hash);
 }catch(error){toast(error.message);}})();

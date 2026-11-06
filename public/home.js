@@ -1,6 +1,6 @@
 (()=>{
  // Keep previously shared portal bookmarks working after the public home page launch.
- const portalPages=['overview','homes','requests','leases','ledger','messages','documents','applications','team','settings','account'];
+ const portalPages=['saved','overview','homes','requests','leases','ledger','messages','documents','applications','team','settings','account'];
  if(portalPages.includes(location.hash.slice(1))){location.replace('/dashboard'+location.hash);return;}
  const escape=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const price=value=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(value);

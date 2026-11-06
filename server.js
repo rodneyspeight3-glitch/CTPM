@@ -57,6 +57,9 @@ async function main(){
     const vacancyApplication=pathname.match(/^\/api\/vacancies\/(\d+)\/applications$/);
     if(vacancyApplication&&req.method==='POST')return json(res,200,vacancies.apply(vacancyApplication[1],await body(req),req.socket.remoteAddress));
     if(!user)return json(res,401,{error:'Please sign in to continue.'});
+    if(pathname==='/api/saved-homes'&&req.method==='GET')return json(res,200,{properties:management.savedHomes(user)});
+    const saveHome=pathname.match(/^\/api\/properties\/(\d+)\/save$/);
+    if(saveHome&&req.method==='POST')return json(res,200,management.saveHome(user,saveHome[1],await body(req)));
     const documentRead=pathname.match(/^\/api\/lease-documents\/(\d+)\/download$/);
     if(documentRead&&['GET','HEAD'].includes(req.method)){const doc=operations.document(user,documentRead[1]);res.writeHead(200,{'Content-Type':'application/pdf','Content-Disposition':`attachment; filename="lease-document-${doc.id}.pdf"`,'Cache-Control':'private, no-store'});return res.end(req.method==='HEAD'?undefined:doc.data);}
     const documentUpload=pathname.match(/^\/api\/leases\/(\d+)\/documents$/);

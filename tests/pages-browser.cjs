@@ -18,6 +18,12 @@ const {fixture}=require('./fixture.cjs');
    await page.reload();await page.locator('#'+name).waitFor();assert.equal(new URL(page.url()).hash,'#'+name);
   }
   await page.locator('[data-page="settings"]').click();
+  // A slower earlier settings response must not erase an edit after the latest load finishes.
+  let releaseStale,markFetched,holdNext=true;const staleFetched=new Promise(resolve=>{markFetched=resolve;});
+  await page.route('**/api/settings',async route=>{if(route.request().method()==='GET'&&holdNext){holdNext=false;const response=await route.fetch();markFetched();await new Promise(resolve=>{releaseStale=resolve;});await route.fulfill({response});}else await route.continue();});
+  await page.evaluate(()=>{window.staleSettingsLoad=loadSettings(true);});await staleFetched;assert.equal(await page.locator('[name="paymentInstructions"]').isDisabled(),true);
+  await page.evaluate(()=>loadSettings(true));await page.locator('[name="paymentInstructions"]').fill('Keep this in-progress edit.');releaseStale();await page.evaluate(()=>window.staleSettingsLoad);
+  assert.equal(await page.locator('[name="paymentInstructions"]').inputValue(),'Keep this in-progress edit.');await page.unroute('**/api/settings');
   const settings={companyName:'Community Office <test>',contactEmail:'management@example.test',contactPhone:'202-555-0101',paymentLabel:'Pay rent',paymentUrl:'https://payments.example.test/residents',paymentAccountName:'Example Account Holder',paymentBankName:'Example Bank',paymentAccountDetails:'Reference: Unit number',paymentInstructions:'Use the portal or contact the office. <test>'};
   for(const [name,value] of Object.entries(settings))await page.locator('#settings-form [name="'+name+'"]').fill(value);
   await page.locator('#settings-form button[type="submit"]').click();await page.locator('#toast').filter({hasText:'Management details saved.'}).waitFor();
@@ -25,8 +31,9 @@ const {fixture}=require('./fixture.cjs');
   await page.setViewportSize({width:390,height:844});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
   await page.locator('#logout').click();await page.waitForURL('**/login');
   await signIn('agent');await page.locator('#settings-nav').click();await page.locator('#settings-updated').filter({hasText:'Last updated'}).waitFor();
-  await page.locator('[name="paymentInstructions"]').fill('Updated rent instructions by agent.');
+  await page.locator('[name="paymentInstructions"]').fill('Updated rent instructions by agent.');assert.equal(await page.locator('[name="paymentInstructions"]').inputValue(),'Updated rent instructions by agent.');
   await page.locator('#settings-form button[type="submit"]').click();await page.locator('#toast').filter({hasText:'Management details saved.'}).waitFor();
+  const savedInstructions=await page.evaluate(async()=> (await api('/api/settings')).settings.paymentInstructions);assert.equal(savedInstructions,'Updated rent instructions by agent.');
   assert.equal(await page.locator('#team-nav').isVisible(),false);
   await page.locator('[data-page="account"]').click();
   await page.locator('[name="currentPassword"]').fill(app.credentials.password);await page.locator('[name="newPassword"]').fill('Changed agent password 123456');await page.locator('[name="confirmation"]').fill('Changed agent password 123456');await page.locator('#password-form button').click();await page.waitForURL('**/login');

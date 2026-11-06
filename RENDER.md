@@ -62,4 +62,8 @@ Authentication, account management, property creation, and maintenance tracking 
 
 The home page is now `/`, the shared login is `/login`, tenant registration is `/signup`, and the protected role-specific portal is `/dashboard`. Existing root portal bookmarks with page fragments forward to the dashboard. No database reset is needed; registration notices and rate-limit records are added automatically. Public registration always creates Tenant access. New registered applicants cannot view payment account details until a lease is assigned. Agent and Admin accounts remain administrator-created.
 
-Only actual properties marked Available are listed as vacancies and accept applications. Six fictional sample homes are clearly separated and cannot receive applications. Staff can use Add a property on the home page or dashboard to enter verified inventory. No real listings are seeded or overwritten by deployment.
+Only actual properties marked Available are listed as vacancies and accept applications. Six fictional sample homes are clearly separated and cannot receive applications. Only agents/admins can use Add property inside their dashboard or portfolio to enter verified inventory. The public home page does not expose property-creation actions. No real listings are seeded or overwritten by deployment.
+
+## Search and tenant shortlists release
+
+The public home page no longer contains staff property-creation controls, including for signed-in staff. Add property remains available only inside agent/admin dashboards and portfolios, with server-side role checks. Tenant shortlists use an additive saved_homes table; no existing properties or accounts are replaced. Public search supports bedroom/budget filters, sorting, and shareable available-property details. Closed properties cannot be saved or opened as new public listings. Previously saved homes retain only their last public snapshot when unavailable.
