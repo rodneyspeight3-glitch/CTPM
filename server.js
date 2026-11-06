@@ -3,10 +3,12 @@ const fs = require('node:fs');
 const path = require('node:path');
 const {createAuth}=require('./lib/auth');
 const {createManagement}=require('./lib/management');
+const {createVacancies}=require('./lib/vacancies');
 const root=path.join(__dirname,'public');
 async function main(){
  const auth=await createAuth(process.env.DATABASE_PATH||path.join(__dirname,'.data','app.sqlite'));
  const management=createManagement(auth.db);
+ const vacancies=createVacancies(auth.db);
  const json=(res,status,data)=>{res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(data));};
  const redirect=(res,to)=>{res.writeHead(302,{Location:to,'Cache-Control':'no-store'}).end();};
  async function body(req){
@@ -34,10 +36,18 @@ async function main(){
      if(!result)return json(res,401,{error:'Email, password, or account type is incorrect.'});
      res.setHeader('Set-Cookie',result.cookie);return json(res,200,{user:result.user});
     }
+    if(pathname==='/api/vacancies'&&req.method==='GET')return json(res,200,{properties:vacancies.listVacancies()});
+    const vacancyApplication=pathname.match(/^\/api\/vacancies\/(\d+)\/applications$/);
+    if(vacancyApplication&&req.method==='POST')return json(res,200,vacancies.apply(vacancyApplication[1],await body(req),req.socket.remoteAddress));
     if(!user)return json(res,401,{error:'Please sign in to continue.'});
+    if(pathname==='/api/applications'&&req.method==='GET')return json(res,200,{applications:vacancies.listApplications(user)});
+    const applicationUpdate=pathname.match(/^\/api\/applications\/(\d+)\/status$/);
+    if(applicationUpdate&&req.method==='POST')return json(res,200,{application:vacancies.updateApplication(user,applicationUpdate[1],await body(req))});
+    const availability=pathname.match(/^\/api\/properties\/(\d+)\/availability$/);
+    if(availability&&req.method==='POST')return json(res,200,{property:management.setAvailability(user,availability[1],await body(req))});
     if(pathname==='/api/session'&&req.method==='GET')return json(res,200,{user});
     if(pathname==='/api/properties'){
-     if(req.method==='GET')return json(res,200,{properties:management.listProperties()});
+     if(req.method==='GET')return json(res,200,{properties:management.listProperties(user)});
      if(req.method==='POST')return json(res,201,{property:management.addProperty(user,await body(req))});
     }
     if(pathname==='/api/requests'){
@@ -58,7 +68,7 @@ async function main(){
    if(!['GET','HEAD'].includes(req.method))return json(res,405,{error:'Method not allowed.'});
    if((pathname==='/'||pathname==='/index.html')&&!user)return redirect(res,'/login');
    if((pathname==='/login'||pathname==='/login.html')&&user)return redirect(res,'/');
-   const relative=pathname==='/'?'/index.html':pathname==='/login'?'/login.html':pathname;
+   const relative=pathname==='/'?'/index.html':pathname==='/login'?'/login.html':pathname==='/vacancies'?'/vacancies.html':pathname;
    const file=path.resolve(root,'.'+decodeURIComponent(relative));
    if(!file.startsWith(root+path.sep))return json(res,403,{error:'Forbidden.'});
    fs.readFile(file,(error,data)=>{

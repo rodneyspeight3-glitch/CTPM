@@ -34,6 +34,12 @@ Only deploy after the persistent disk and environment variables are configured. 
 
 Do not scale to multiple instances with this SQLite configuration. A shared managed database is needed for horizontal scaling. Do not point `DATABASE_PATH` at a pre-existing unrelated database. Redeploys must retain the same disk path.
 
+## Dashboard and vacancies release
+
+The release adds an availability column and application tables on startup without replacing existing data. Existing properties start Unavailable. After deployment, agents/admins should mark the intended vacancies Available from the portfolio, then check the dashboard and `/vacancies`. New properties can be marked Available in the Add property form. Keep the existing persistent disk and database path.
+
+Use a test application to verify the staff-only Applications queue and status updates. The shared sign-in page remains `/login`; prospective tenants can apply from `/vacancies` without an account. The form does not charge a fee, create a lease or tenant account, or send email.
+
 ## Remaining product integrations
 
 Authentication, account management, property creation, and maintenance tracking use the persistent SQLite database. Staff can create properties and update tenant requests through the portal. Existing accounts and sessions are preserved by additive table creation on startup; keep the same disk and DATABASE_PATH. Browser-local demo requests from older versions are not imported. Three clearly marked sample listings remain, and photos are illustrative. Payments, email password recovery, lease documents, general inquiry delivery, and email/push notifications are not connected.

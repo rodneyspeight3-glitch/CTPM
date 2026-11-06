@@ -6,7 +6,7 @@ test('properties and maintenance enforce roles, isolate tenants, and survive ser
  const request=(url,{method='GET',data,cookie,origin=base}={})=>fetch(base+url,{method,headers:{...(method==='POST'?{'Content-Type':'application/json',Origin:origin}:{}),...(cookie?{Cookie:cookie}:{})},body:data===undefined?undefined:JSON.stringify(data)});
  const post=(url,cookie,data,origin)=>request(url,{method:'POST',cookie,data,origin});
  const login=async user=>{const r=await post('/api/login',null,user);assert.equal(r.status,200);return r.headers.get('set-cookie').split(';')[0];};
- const property={name:'Willow <test>',address:'123 Test Street',area:'Downtown',price:1250.50,beds:2,baths:1.5,size:1000,type:'APARTMENT',image:1};
+ const property={name:'Willow <test>',address:'123 Test Street',area:'Downtown',price:1250.50,beds:2,baths:1.5,size:1000,type:'APARTMENT',image:1,available:true};
  const issue={title:'Leaking faucet <test>',description:'Kitchen faucet drips.',location:'123 Test Street, Unit 2',category:'Plumbing',priority:'Urgent'};
  try{
   const admin=await login(app.credentials);

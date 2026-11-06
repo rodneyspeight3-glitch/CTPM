@@ -6,6 +6,7 @@ const {fixture}=require('./fixture.cjs');
  const response=await fetch(app.base+'/api/login',{method:'POST',headers:{'Content-Type':'application/json',Origin:app.base},body:JSON.stringify(app.credentials)});
  const cookie=response.headers.get('set-cookie').split(';')[0];
  for(const role of ['tenant','agent']){await fetch(app.base+'/api/admin/users',{method:'POST',headers:{'Content-Type':'application/json',Origin:app.base,Cookie:cookie},body:JSON.stringify({name:'Test '+role,email:role+'@example.test',password:app.credentials.password,role})});}
+ for(const property of require('./listing-fixtures.cjs')){const r=await fetch(app.base+'/api/properties',{method:'POST',headers:{'Content-Type':'application/json',Origin:app.base,Cookie:cookie},body:JSON.stringify(property)});assert.equal(r.status,201);}
  const browser = await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH || '/usr/bin/chromium',args:['--no-sandbox']});
  const page = await browser.newPage({viewport:{width:1440,height:1100}});
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
@@ -28,7 +29,11 @@ const {fixture}=require('./fixture.cjs');
  await page.getByRole('heading',{name:'Good things come together.'}).waitFor();
  await page.locator('#account-name').filter({hasText:'Test tenant'}).waitFor({state:'attached'});
  assert.equal(await page.locator('#team-nav').isVisible(),false);
- assert.equal(await page.locator('#featured .property-card').count(),3);
+ await page.locator('#featured h3').filter({hasText:'Garden Square'}).waitFor();
+ assert.equal(await page.locator('#featured .property-card').count(),4);
+ assert.equal(await page.locator('#available-count').textContent(),'4');
+ assert.equal(await page.locator('#featured a[href^="/vacancies?property="]').count(),4);
+ assert.equal(await page.locator('#featured').getByText('Occupied home').count(),0);
  await page.locator('[data-page="homes"]').click();
  await page.locator('#search').fill('Willow');
  assert.equal(await page.locator('#all-homes .property-card').count(),1);
@@ -79,6 +84,7 @@ const {fixture}=require('./fixture.cjs');
   await page.locator('[data-page="homes"]').click();
   await page.locator('#add-property').click();
   for(const [key,value] of Object.entries({name:role+' home <test>',area:'Test neighborhood',address:'123 Test Street',price:'1250',beds:'2',baths:'1.5',size:'1000'}))await page.locator('#property-form [name="'+key+'"]').fill(value);
+  await page.locator('#property-form [name="available"]').selectOption('true');
   await page.locator('#property-form button').click();
   await page.locator('#all-homes h3').filter({hasText:role+' home <test>'}).waitFor();
   await page.reload();
