@@ -36,4 +36,4 @@ Do not scale to multiple instances with this SQLite configuration. A shared mana
 
 ## Remaining product integrations
 
-Authentication and account management are real. Property inventory and pricing remain illustrative. Maintenance requests remain browser-local and are isolated by account; they are not sent to a management team. Payments, email password recovery, lease documents, and management messaging are not connected.
+Authentication, account management, property creation, and maintenance tracking use the persistent SQLite database. Staff can create properties and update tenant requests through the portal. Existing accounts and sessions are preserved by additive table creation on startup; keep the same disk and DATABASE_PATH. Browser-local demo requests from older versions are not imported. Three clearly marked sample listings remain, and photos are illustrative. Payments, email password recovery, lease documents, general inquiry delivery, and email/push notifications are not connected.

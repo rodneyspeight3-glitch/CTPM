@@ -2,9 +2,11 @@ const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
 const {createAuth}=require('./lib/auth');
+const {createManagement}=require('./lib/management');
 const root=path.join(__dirname,'public');
 async function main(){
  const auth=await createAuth(process.env.DATABASE_PATH||path.join(__dirname,'.data','app.sqlite'));
+ const management=createManagement(auth.db);
  const json=(res,status,data)=>{res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(data));};
  const redirect=(res,to)=>{res.writeHead(302,{Location:to,'Cache-Control':'no-store'}).end();};
  async function body(req){
@@ -34,6 +36,16 @@ async function main(){
     }
     if(!user)return json(res,401,{error:'Please sign in to continue.'});
     if(pathname==='/api/session'&&req.method==='GET')return json(res,200,{user});
+    if(pathname==='/api/properties'){
+     if(req.method==='GET')return json(res,200,{properties:management.listProperties()});
+     if(req.method==='POST')return json(res,201,{property:management.addProperty(user,await body(req))});
+    }
+    if(pathname==='/api/requests'){
+     if(req.method==='GET')return json(res,200,{requests:management.listRequests(user)});
+     if(req.method==='POST')return json(res,201,{request:management.addRequest(user,await body(req))});
+    }
+    const requestAction=pathname.match(/^\/api\/requests\/(\d+)\/(status|cancel)$/);
+    if(requestAction&&req.method==='POST')return json(res,200,{request:management.updateRequest(user,requestAction[1],await body(req),requestAction[2]==='cancel')});
     if(pathname==='/api/logout'&&req.method==='POST'){auth.logout(req);res.setHeader('Set-Cookie',auth.sessionCookie('',0));return json(res,200,{ok:true});}
     if(pathname==='/api/password'&&req.method==='POST'){const data=await body(req);await auth.changePassword(user,data.currentPassword,data.newPassword);res.setHeader('Set-Cookie',auth.sessionCookie('',0));return json(res,200,{ok:true});}
     if(pathname==='/api/admin/users'){
