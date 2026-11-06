@@ -1,5 +1,5 @@
 (()=>{
- const portalPages=['saved','overview','homes','requests','leases','ledger','messages','documents','applications','team','settings','account'];
+ const portalPages=['saved','overview','homes','requests','leases','ledger','messages','documents','applications','team','settings','account','my-applications','tours','signatures','searches','contractors','reports','agent-profiles','integrations'];
  if(portalPages.includes(location.hash.slice(1))){location.replace('/dashboard'+location.hash);return;}
  const escape=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const price=value=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(value);

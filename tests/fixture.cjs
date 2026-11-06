@@ -14,6 +14,6 @@ async function fixture(overrides={}){
  const base=await start();
  async function stop(){if(child.exitCode!==null)return;await new Promise(resolve=>{child.once('exit',resolve);child.kill('SIGTERM');});}
  process.once('exit',()=>{child?.kill();rmSync(directory,{recursive:true,force:true});});
- return {base,credentials,stop,start,cleanup:async()=>{await stop();rmSync(directory,{recursive:true,force:true});}};
+ return {base,credentials,databasePath:path.join(directory,'app.sqlite'),stop,start,cleanup:async()=>{await stop();rmSync(directory,{recursive:true,force:true});}};
 }
 module.exports={fixture};

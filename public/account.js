@@ -10,7 +10,7 @@ window.loadTeam=async()=>{try{const {users}=await api('/api/admin/users');$('#te
 function showCreateAccount(role='tenant'){
  openModal('<p class="eyebrow">ADMINISTRATOR ACCESS</p><h2>Bring your people together.</h2><form id="create-user-form"><label>Full name<input name="name" required maxlength="100" autocomplete="name"></label><label>Email address<input name="email" type="email" required maxlength="254" autocomplete="off"></label><label>Account type<select name="role"><option value="tenant">Tenant</option><option value="agent">Agent</option><option value="admin">Admin</option></select></label><label>Initial password<input name="password" type="password" required minlength="16" maxlength="128" autocomplete="new-password"></label><p class="form-note">Use at least 16 characters. Share these credentials securely; no email is sent.</p><p id="create-user-error" role="alert"></p><button class="button green">Create account →</button></form>');
  $('#create-user-form').elements.role.value=role;
- $('#create-user-form').onsubmit=async event=>{event.preventDefault();const button=event.target.querySelector('button');button.disabled=true;try{await api('/api/admin/users',{method:'POST',body:JSON.stringify(Object.fromEntries(new FormData(event.target)))});closeModal();await window.loadTeam();toast('Account created. Share credentials securely.');}catch(error){$('#create-user-error').textContent=error.message;}finally{button.disabled=false;}};
+ $('#create-user-form').onsubmit=async event=>{event.preventDefault();const button=event.target.querySelector('button');button.disabled=true;try{await api('/api/admin/users',{method:'POST',body:JSON.stringify(Object.fromEntries(new FormData(event.target)))});closeModal();await window.loadTeam();if(location.hash==='#agent-profiles')await window.loadServicePage?.('agent-profiles');toast('Account created. Share credentials securely.');}catch(error){$('#create-user-error').textContent=error.message;}finally{button.disabled=false;}};
 };
 $('#create-account').onclick=()=>showCreateAccount();
 $('#create-agent').onclick=()=>showCreateAccount('agent');
@@ -18,7 +18,7 @@ const signOut=async()=>{try{await api('/api/logout',{method:'POST',body:'{}'});w
 $('#logout').onclick=signOut;$('#logout-side').onclick=signOut;
 $('#password-form').onsubmit=async event=>{event.preventDefault();const data=Object.fromEntries(new FormData(event.target));if(data.newPassword!==data.confirmation){$('#password-error').textContent='New passwords do not match.';return;}const button=event.target.querySelector('button');button.disabled=true;try{await api('/api/password',{method:'POST',body:JSON.stringify(data)});window.location.replace('/login');}catch(error){$('#password-error').textContent=error.message;}finally{button.disabled=false;}};
 (async()=>{try{
- const {user}=await api('/api/session');currentUser=user;
+ const {user}=await api('/api/session');currentUser=user;window.initializeServiceAccount?.(user).catch(error=>toast(error.message));
  $('#add-property').hidden=user.role==='tenant';
  $('#applications-nav').hidden=user.role==='tenant';
  $('#settings-nav').hidden=user.role==='tenant';
@@ -29,7 +29,7 @@ $('#password-form').onsubmit=async event=>{event.preventDefault();const data=Obj
  $('#account-name').textContent=user.name;$('#account-role').textContent=user.role[0].toUpperCase()+user.role.slice(1)+' account';
  $('#account-detail').textContent=user.email+' · '+user.role;
  document.querySelectorAll('.avatar').forEach(el=>el.textContent=user.name[0].toUpperCase());
- $('#team-nav').hidden=user.role!=='admin';
+ $('#team-nav').hidden=user.role!=='admin';document.querySelectorAll('[data-admin-only]').forEach(el=>el.hidden=user.role!=='admin');
  if(user.role!=='tenant'){
   document.querySelector('.nav-item[data-page="homes"]').innerHTML='<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"></path></svg></span> Property';
   $('#homes .page-heading h1').textContent='Property portfolio.';

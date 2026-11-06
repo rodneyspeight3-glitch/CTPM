@@ -5,12 +5,16 @@
   "scripts": {
     "dev": "node server.js",
     "start": "node server.js",
-    "test": "node --test tests/*.test.cjs && node tests/browser.cjs && node tests/vacancies-browser.cjs && node tests/pages-browser.cjs && node tests/operations-browser.cjs && node tests/home-browser.cjs && node tests/home-search-browser.cjs && node tests/showcase-browser.cjs && node tests/professional-browser.cjs"
+    "test": "node --test tests/*.test.cjs && node tests/browser.cjs && node tests/vacancies-browser.cjs && node tests/pages-browser.cjs && node tests/operations-browser.cjs && node tests/home-browser.cjs && node tests/home-search-browser.cjs && node tests/showcase-browser.cjs && node tests/professional-browser.cjs && node tests/services-browser.cjs"
   },
   "devDependencies": {
     "playwright": "1.62.1"
   },
   "engines": {
     "node": ">=24 <25"
+  },
+  "dependencies": {
+    "pdf-lib": "1.17.1",
+    "stripe": "23.1.0"
   }
 }
