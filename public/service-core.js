@@ -1,7 +1,7 @@
 const servicePages={},serviceState={};
 const servicePost=(path,data={})=>api(path,{method:'POST',body:JSON.stringify(data)});
 const serviceEmpty=(title,body)=>`<div class="empty-state"><h3>${escapeHTML(title)}</h3><p>${escapeHTML(body)}</p></div>`;
-const serviceDate=value=>new Intl.DateTimeFormat(undefined,{dateStyle:'medium',timeStyle:'short'}).format(new Date(value));
+const serviceDate=value=>window.portalFormatDate?window.portalFormatDate(value):new Intl.DateTimeFormat(undefined,{dateStyle:'medium',timeStyle:'short'}).format(new Date(value));
 const serviceToday=()=>new Date().toISOString().slice(0,10);
 const serviceStaff=()=>['admin','agent'].includes(currentUser?.role);
 function serviceVerifyCard(){return `<div class="notice-card service-callout"><p class="eyebrow">YOUR SECURE SPACE</p><h3>Confirm your identity to continue.</h3><p>Ask management to confirm your resident identity before booking viewings or signing a lease. Use your private receipt to claim an application.</p><button class="button green" data-service-go="account">Open My account →</button></div>`;}

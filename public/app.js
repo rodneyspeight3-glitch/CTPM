@@ -1,6 +1,6 @@
 let properties=[];
 const $ = selector => document.querySelector(selector);
-const money = value => new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',minimumFractionDigits:0,maximumFractionDigits:2}).format(value);
+const money = value => window.portalFormatMoney(value);
 const escapeHTML = text => String(text).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 let requests=[],savedHomes=[],portalRouteVersion=0;
 async function loadHomes(){
@@ -15,8 +15,8 @@ async function loadRequests(){
 function go(page,updateHash=true){
  if(typeof currentUser==='undefined'||!currentUser)return;
  portalRouteVersion++;
- const labels={overview:'Dashboard',saved:'Saved homes',homes:currentUser.role==='tenant'?'Find a home':'Property',requests:'Maintenance',documents:'Resources',team:'Manage accounts',applications:'Applications',settings:'Management settings',leases:'Leases',ledger:'Rent ledger',messages:'Messages',account:'My account','my-applications':'My applications',tours:'Property viewings',signatures:'Lease signing',searches:'Saved searches',contractors:'Contractors',reports:'Financial reports','agent-profiles':'Agent profiles',integrations:'Built-in services',workspace:'Team workspace',community:'Community',library:'Documents',help:'Help & guides',handover:'Handover'};
- if(!Object.hasOwn(labels,page)||(['saved','searches','my-applications'].includes(page)&&currentUser.role!=='tenant')||(['team','agent-profiles','integrations','handover'].includes(page)&&currentUser.role!=='admin')||(['applications','settings','contractors','reports','workspace'].includes(page)&&currentUser.role==='tenant')){page='overview';history.replaceState(null,'','#overview');}
+ const labels={overview:'Dashboard',saved:'Saved homes',homes:currentUser.role==='tenant'?'Find a home':'Property',requests:'Maintenance',documents:'Resources',team:'Manage accounts',applications:'Applications',settings:'Management settings',leases:'Leases',ledger:'Rent ledger',messages:'Messages',account:'My account','my-applications':'My applications',tours:'Property viewings',signatures:'Lease signing',searches:'Saved searches',contractors:'Contractors',reports:'Financial reports','agent-profiles':'Agent profiles',integrations:'Built-in services',workspace:'Team workspace',community:'Community',library:'Documents',help:'Help & guides',handover:'Handover',organizer:'Private organizer',workbench:'Operations hub'};
+ if(!Object.hasOwn(labels,page)||(['saved','searches','my-applications'].includes(page)&&currentUser.role!=='tenant')||(['team','agent-profiles','integrations','handover'].includes(page)&&currentUser.role!=='admin')||(['applications','settings','contractors','reports','workspace','workbench'].includes(page)&&currentUser.role==='tenant')){page='overview';history.replaceState(null,'','#overview');}
  document.querySelectorAll('.page').forEach(el=>el.hidden=el.id!==page);
  document.querySelectorAll('.nav-item').forEach(el=>el.classList.toggle('active',el.dataset.page===page));
  $('#crumb').textContent=labels[page];window.refreshPageSwitcher?.(page);
@@ -30,7 +30,7 @@ function go(page,updateHash=true){
  if(page==='settings')loadSettings(true).catch(error=>{$('#settings-error').textContent=error.message;});
  if(page==='team')window.loadTeam?.();
  window.loadServicePage?.(page);
- window.scrollTo({top:0,behavior:'smooth'});
+ window.scrollTo({top:0,behavior:document.documentElement.dataset.motion==='reduced'||matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});
 }
 window.addEventListener('hashchange',()=>go(location.hash.slice(1)||'overview',false));
 document.querySelectorAll('[data-page]').forEach(el=>el.onclick=()=>go(el.dataset.page));document.querySelectorAll('[data-go]').forEach(el=>el.onclick=()=>go(el.dataset.go));

@@ -15,6 +15,8 @@ Open http://localhost:3000. A fresh local database needs `ADMIN_EMAIL` and a uni
 
 `npm test` runs API and Chromium integration suites using isolated databases and randomized credentials. Install Chromium with `npx playwright install chromium` and set `CHROMIUM_PATH` to the installed executable when it is not `/usr/bin/chromium`. Provider tests use local doubles and cannot send real email or charge real cards.
 
+The [200-capability app expansion](docs/APP-200.md) adds visitor-local day/night, reading controls, an account-private organizer, and ten staff workflow packs under Operations hub. It uses the existing SQLite database and no paid add-ons.
+
 ## Main workflows
 
 - **Public:** `/`, `/vacancies`, `/agents`, `/apply`, and `/application-status`. Available verified properties accept applications. Open applications accept an address before a property exists in the portfolio. Private receipt links support status tracking without email.

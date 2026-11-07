@@ -21,6 +21,8 @@ const {createPortfolioTools}=require('./lib/portfolio-tools');
 const {createWorkspace}=require('./lib/workspace');
 const {createHandover}=require('./lib/handover');
 const {createHandoverRoutes}=require('./lib/handover-routes');
+const {createWorkbench}=require('./lib/workbench');
+const {createWorkbenchRoutes}=require('./lib/workbench-routes');
 const root=path.join(__dirname,'public');
 async function main(){
  const auth=await createAuth(process.env.DATABASE_PATH||path.join(__dirname,'.data','app.sqlite'));
@@ -43,6 +45,7 @@ async function main(){
  }
  const services=createServiceRoutes({accounts,notices,resident,finance,signatures,experience,agents,body,rawBody,json});
  const handoverRoutes=createHandoverRoutes({applicationMail,vacancies,freeAccess,portfolio,workspace,handover,notices,body,json});
+ const workbenchRoutes=createWorkbenchRoutes({workbench:createWorkbench(auth.db),body,json});
  const server=http.createServer(async(req,res)=>{
   res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('X-Frame-Options','DENY');res.setHeader('Referrer-Policy','same-origin');
   res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob:; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'");
@@ -65,6 +68,7 @@ async function main(){
      const expected=process.env.APP_ORIGIN||(req.headers.host?`${process.env.NODE_ENV==='production'?'https':'http'}://${req.headers.host}`:'');
      if(!origin||origin!==expected||req.headers['sec-fetch-site']==='cross-site')return json(res,403,{error:'Request origin is not allowed.'});
     }
+    if(await workbenchRoutes(req,res,requestURL,user))return;
     if(await handoverRoutes(req,res,requestURL,user))return;
     if(await services(req,res,requestURL,user))return;
     if(pathname==='/api/login'&&req.method==='POST'){
