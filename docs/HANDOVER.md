@@ -19,6 +19,16 @@ The editor accepts up to nine JPEG/PNG photos, 10 MB per source file. The browse
 
 The completeness indicator checks supplied fields and a real uploaded photograph; it is not an address verification or quality guarantee. Staff confirm listing accuracy themselves. Map links open OpenStreetMap only after a click, with no API key or background map requests.
 
+**Agents in charge:** homes created by an agent automatically assign that agent. Administrators choose or change the assigned team in Add/Edit property, including multiple agents. Editing another agent's home preserves its assignments; regular agents cannot reassign homes. These assignments identify public responsibility while retaining the shared staff portfolio's existing access permissions. Agent names, portraits and contact links use only the admin-managed public profile, never the account's private login email or phone. Add public contact details in **Agent profiles** when appropriate.
+
+Existing homes are assigned once using the recorded creator when that account is an agent. Admin-created homes and homes without a known agent creator show **Managed by the property team** until an administrator assigns them. The migration never restores assignments removed by an administrator. Inactive or role-changed agent accounts are hidden publicly and flagged in the staff editor; an administrator can remove them or choose an active replacement. Saving metadata, photos and agent selections is atomic. A failure to load agent options prevents the editor from saving an empty replacement team.
+
+## Built-in property help
+
+The **Property help** button opens curated site guidance and searches current public vacancies by bedroom count, rent ceiling, neighborhood, home name or assigned agent. It is not a generative AI service, a staff conversation or a private record lookup. Its quick topics cover required application documents, receipt tracking, sign-in, maintenance, payments and management contacts. It cannot approve an application, take a payment, send a message or dispatch emergency assistance. Use portal **Messages** for a management response.
+
+Help fetches only the public listings and company contact settings. Questions are processed in the browser, stay in page memory and disappear on Clear chat or reload. There is no chat database, external AI provider, API key or subscription. Keep private details in the authorized forms. Detection removes obvious receipt secrets and passwords from displayed questions, but it is not a substitute for avoiding sensitive information in help. When listings cannot load, the guide offers navigation without inventing vacancy details. Keyboard close/focus, mobile layouts and the current day/night palette are supported.
+
 ## Open applications and receipts
 
 `/apply` accepts any applicant-entered street address, even if management has not uploaded the property. Listed homes also have their own application entry points. Required answers include rental-history answers and the applicant's message; **other income and all pet information are optional**. Rental-history and additional document uploads are optional. Proof of income and government-issued photo ID are required. Credit is self-reported; the app does not pull credit or decide eligibility.
