@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "node server.js",
     "start": "node server.js",
-    "test": "node --test tests/*.test.cjs && node tests/browser.cjs && node tests/vacancies-browser.cjs && node tests/pages-browser.cjs && node tests/operations-browser.cjs && node tests/home-browser.cjs && node tests/home-search-browser.cjs && node tests/showcase-browser.cjs && node tests/professional-browser.cjs && node tests/services-browser.cjs && node tests/handover-browser.cjs && node tests/mail-browser.cjs && node tests/home-experience-browser.cjs && node tests/local-theme-browser.cjs && node tests/workbench-browser.cjs && node tests/property-agents-help-browser.cjs && node tests/application-decisions-browser.cjs && node tests/lease-preparation-browser.cjs && node tests/applicant-leases-browser.cjs && node tests/neighborhood-agent-feedback-browser.cjs"
+    "test": "node --test tests/*.test.cjs && node tests/browser.cjs && node tests/vacancies-browser.cjs && node tests/pages-browser.cjs && node tests/operations-browser.cjs && node tests/home-browser.cjs && node tests/home-search-browser.cjs && node tests/showcase-browser.cjs && node tests/professional-browser.cjs && node tests/services-browser.cjs && node tests/handover-browser.cjs && node tests/mail-browser.cjs && node tests/home-experience-browser.cjs && node tests/local-theme-browser.cjs && node tests/workbench-browser.cjs && node tests/property-agents-help-browser.cjs && node tests/application-decisions-browser.cjs && node tests/lease-preparation-browser.cjs && node tests/applicant-leases-browser.cjs && node tests/neighborhood-agent-feedback-browser.cjs && node tests/smtp-settings-browser.cjs"
   },
   "devDependencies": {
     "playwright": "1.62.1"

@@ -8,6 +8,8 @@ const {createSettings}=require('./lib/settings');
 const {createOperations}=require('./lib/operations');
 const {seedShowcase}=require('./lib/showcase');
 const {createApplicationMail}=require('./lib/application-mail');
+const {createSmtpSettings}=require('./lib/smtp-settings');
+const {createMailer}=require('./lib/mailer');
 const {createNotifications}=require('./lib/notifications');
 const {createAccountServices}=require('./lib/account-services');
 const {createResidentServices}=require('./lib/resident-services');
@@ -35,7 +37,9 @@ async function main(){
  let resident,leasePreparation;const vacancies=createVacancies(auth.db,{onEvent:(...args)=>resident.applicationEvent(...args),onDecision:(...args)=>leasePreparation.ensure(...args)});
  const settings=createSettings(auth.db);
  const operations=createOperations(auth.db);
- const notices=createNotifications(auth.db),accounts=createAccountServices(auth.db,notices);
+ const smtpSettings=createSmtpSettings(auth.db,{keyPath:path.join(path.dirname(process.env.DATABASE_PATH||path.join(__dirname,'.data','app.sqlite')),'.smtp-key')});
+ const mailer=createMailer({settingsSource:smtpSettings.snapshot});
+ const notices=createNotifications(auth.db,{mailer}),accounts=createAccountServices(auth.db,notices);
  const applicationMail=createApplicationMail(auth.db,notices);
  resident=createResidentServices(auth.db,notices,{applicationMail});
  const finance=createFinance(auth.db,notices),signatures=createSignatures(auth.db,notices),experience=createExperience(auth.db,notices),agents=createAgents(auth.db);
@@ -50,7 +54,7 @@ async function main(){
   if(!req.headers['content-type']?.startsWith('application/json')){const e=new Error('JSON content is required.');e.status=415;throw e;}
   const bytes=await rawBody(req,maxSize);try{const parsed=JSON.parse(bytes.toString('utf8'));if(!parsed||Array.isArray(parsed)||typeof parsed!=='object')throw Error();return parsed;}catch{const e=new Error('Invalid request.');e.status=400;throw e;}
  }
- const services=createServiceRoutes({accounts,notices,resident,finance,signatures,experience,agents,body,rawBody,json});
+ const services=createServiceRoutes({smtpSettings,accounts,notices,resident,finance,signatures,experience,agents,body,rawBody,json});
  const handoverRoutes=createHandoverRoutes({applicationMail,vacancies,freeAccess,portfolio,workspace,handover,notices,body,json});
  const agentReviewRoutes=createAgentReviewRoutes({reviews:createAgentReviews(auth.db,notices),body,json});
  const leasePreparationRoutes=createLeasePreparationRoutes({preparations:leasePreparation,offers:applicantLeases,body,json});

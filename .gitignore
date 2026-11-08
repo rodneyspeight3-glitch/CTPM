@@ -5,3 +5,7 @@ node_modules/
 .data/
 .env.*
 !.env.example
+
+# SMTP encryption keys must stay off source control.
+.smtp-key
+.smtp-key.*

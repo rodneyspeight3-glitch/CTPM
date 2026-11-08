@@ -1,12 +1,20 @@
+## Configure from the administrator dashboard
+
+Administrators can now manage SMTP in **Dashboard → Built-in services**. Save a provider/mailbox/password with delivery paused, check the saved connection, or confirm **Check & enable automatic email**. These actions require the current administrator password. The saved mailbox password stays masked and is never returned. Gmail still needs a Google app password; the dashboard cannot create one for the Google account.
+
+The override is encrypted in SQLite with a separate `.smtp-key` on the persistent disk. Back up that key separately from SQLite backups. Existing hosting variables continue to apply until an override is saved, and the administrator can explicitly return to them. See [the handover guide](HANDOVER.md#smtp-settings-in-the-administrator-dashboard) for recovery, key storage, live changes and the `EMAIL_DELIVERY_DISABLED=true` staging lock.
+
 # Automated email through Gmail or mail.com SMTP
 
 The application uses Nodemailer and the existing SQLite email outbox. Personal Gmail is supported without a paid email subscription when the account allows Google app passwords. mail.com is also supported for an existing Premium mailbox; its free accounts cannot use SMTP. No subscription is purchased or upgraded by the app.
 
-## Configure privately in the existing Render service
+## Optional hosting fallback in the existing Render service
+
+These variables apply when the SMTP form shows **Hosting settings**. A saved dashboard override takes precedence. Use **Save settings with delivery paused** to pause that override; use `EMAIL_DELIVERY_DISABLED=true` as a hosting-level lock for staging or recovery.
 
 | Render Environment variable | Value |
 |---|---|
-| `SMTP_ENABLED` | `true` to enable the selected SMTP provider; `false` pauses delivery |
+| `SMTP_ENABLED` | `true` enables the hosting SMTP fallback; `false` pauses that fallback |
 | `SMTP_HOST` | `smtp.gmail.com` for personal Gmail, or `smtp.mail.com` |
 | `SMTP_PORT` | `465` for TLS, or `587` for mandatory STARTTLS |
 | `SMTP_USER` | The complete owner-authorized sender mailbox address |
