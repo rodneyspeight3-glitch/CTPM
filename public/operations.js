@@ -21,7 +21,7 @@ function renderOperations(){
  window.decorateOnlinePayments?.();
  if($('#print-ledger'))$('#print-ledger').onclick=()=>window.print();
  $('#message-count').textContent=conversations.filter(c=>c.status==='Open').length;
- $('#notifications i').hidden=!requests.some(r=>['Submitted','In progress'].includes(r.status))&&!applications.some(a=>!['Closed','Withdrawn'].includes(a.status))&&!conversations.some(c=>c.status==='Open')&&!window.unreadNotificationCount;
+ $('#notifications i').hidden=!requests.some(r=>['Submitted','In progress'].includes(r.status))&&!applications.some(a=>ApplicationStates.isOpen(a.status))&&!conversations.some(c=>c.status==='Open')&&!window.unreadNotificationCount;
  $('#conversations-list').innerHTML=conversations.length?conversations.map(c=>`<article class="request-row"><p class="eyebrow">${escapeHTML(c.status.toUpperCase())}</p><h3>${escapeHTML(c.subject)}</h3>${staff?`<p>Resident: ${escapeHTML(c.tenant_name)}</p>`:''}<p>${escapeHTML(c.last_message)}</p><div class="request-meta"><span>${escapeHTML(new Date(c.updated_at).toLocaleString())}</span><button class="text-link" data-thread="${c.id}">Open conversation</button></div></article>`).join(''):emptyPanel('No conversations yet.',staff?'Resident messages will appear here.':'Send a message to your management team when you need help.');
 }
 $('#add-lease').onclick=async()=>{

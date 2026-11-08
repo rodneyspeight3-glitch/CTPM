@@ -39,6 +39,10 @@ A tenant can claim a new receipt in **My applications** using an account with th
 
 Staff can match an address application to an existing verified property. The original requested address remains on record. Matching does not create an inventory listing, confirm vacancy, approve an application, or reserve a home. Priority and follow-up dates are private organization tools, separate from applicant-facing status. Calendar exports are downloaded snapshots, not live subscriptions.
 
+**Approve or reject:** both agents and administrators have **Approve** and **Reject** actions in Applications and inside the full review. Review the applicant's answers/documents, choose the decision, tick its confirmation and use **Confirm approval** or **Confirm rejection**. A stale review cannot overwrite newer staff work. Approval records management's decision without creating an account, lease, charge or reservation or changing property availability. In-app notices, My applications and the private receipt show the outcome; configured email sends the actual decision only to opted-in applicants. Staff notes, reviewer names and detailed review history remain staff-only.
+
+Approved and Rejected have separate filters and leave the open-review total. Applicants cannot overwrite a completed decision by withdrawing it. To correct a completed, closed or withdrawn review, staff first save **Reviewing**, reopen the current record and then confirm the new decision. Prior decisions, staff accounts and timestamps remain in review history. Legacy **Closed** records retain that status and do not become approvals or rejections automatically. Email configuration and delivery pauses are preserved by this release.
+
 ## Residents and daily work
 
 - **Identity:** administrators can record In person, Phone and documents, or Known resident confirmation after completing the normal management identity check. Do not put ID numbers in notes. This is recorded separately from email ownership verification. Confirmed tenants can request viewings, receive matching-home alerts, and sign assigned lease PDFs without an email provider.

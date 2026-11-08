@@ -1,0 +1,20 @@
+.application-decision-actions{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:18px 0}
+.application-decision-summary{padding:18px;border:1px solid var(--line);border-radius:15px;background:var(--accent-soft);margin:18px 0}
+.application-decision-summary p{font-size:12px;line-height:1.8;margin-top:8px}
+.application-decision-confirm{padding:17px;border:1px solid var(--line);border-left:4px solid var(--green);border-radius:12px;background:var(--accent-soft);margin:15px 0}
+.application-decision-confirm strong{font-size:14px}.application-decision-confirm p{font-size:12px;line-height:1.8;margin:8px 0 14px}
+.application-decision-confirm .consent-label{display:flex;align-items:flex-start;font-size:12px;line-height:1.8;gap:10px}.application-decision-confirm input{width:18px;height:18px;flex:0 0 18px;accent-color:var(--green)}
+.application-reject-button{background:#fff0eb;color:#8b3023;border:1px solid #d9ada4;border-radius:12px;padding:10px 14px;font-weight:650;font-size:12px}
+[data-theme=dark] .application-reject-button{background:#4c3031;color:#ffd4cc;border-color:#b47773}
+.service-badge[data-application-state=Approved],.application-list-status[data-application-state=Approved]{background:#e0f3e8;color:#175b40;border-color:#78ae8f}
+.service-badge[data-application-state=Rejected],.application-list-status[data-application-state=Rejected]{background:#fff0eb;color:#8b3023;border-color:#d9ada4}
+[data-theme=dark] .service-badge[data-application-state=Approved],[data-theme=dark] .application-list-status[data-application-state=Approved]{background:#224e40;color:#bcf5d6;border-color:#679b82}
+[data-theme=dark] .service-badge[data-application-state=Rejected],[data-theme=dark] .application-list-status[data-application-state=Rejected]{background:#4c3031;color:#ffd4cc;border-color:#b47773}
+.application-decision-confirm[data-decision=Rejected]{border-left-color:#bd5c46}
+#review-application-form[data-decision=Rejected]>button{background:#8b3023;border-color:#8b3023;color:#fff}
+[data-theme=dark] #review-application-form[data-decision=Rejected]>button{background:#e69c8b;border-color:#e69c8b;color:#3f2622}
+#modal .close{background:var(--card);color:var(--ink);border:1px solid var(--line)}
+.application-status-description{font-size:13px;line-height:1.9;margin:12px 0;color:var(--ink)}
+#application-pipeline strong{color:var(--ink)}
+.application-pipeline [data-application-status=Approved]{border-top:3px solid #5b9b7c}.application-pipeline [data-application-status=Rejected]{border-top:3px solid #bd5c46}
+@media(max-width:480px){.application-decision-actions{gap:9px}.application-decision-actions .button,.application-decision-actions .application-reject-button{font-size:11px;padding:10px 12px}}
