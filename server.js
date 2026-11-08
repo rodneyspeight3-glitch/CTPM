@@ -21,6 +21,7 @@ const {createPortfolioTools}=require('./lib/portfolio-tools');
 const {createWorkspace}=require('./lib/workspace');
 const {createHandover}=require('./lib/handover');
 const {createHandoverRoutes}=require('./lib/handover-routes');
+const {createApplicantLeases}=require('./lib/applicant-leases');
 const {createLeasePreparation}=require('./lib/lease-preparation');
 const {createLeasePreparationRoutes}=require('./lib/lease-preparation-routes');
 const {createWorkbench}=require('./lib/workbench');
@@ -37,7 +38,8 @@ async function main(){
  resident=createResidentServices(auth.db,notices,{applicationMail});
  const finance=createFinance(auth.db,notices),signatures=createSignatures(auth.db,notices),experience=createExperience(auth.db,notices),agents=createAgents(auth.db);
  const freeAccess=createFreeAccess(auth.db,operations,notices,applicationMail),portfolio=createPortfolioTools(auth.db,management,resident),workspace=createWorkspace(auth.db,notices),handover=createHandover(auth.db,operations,freeAccess,settings);
- leasePreparation=createLeasePreparation(auth.db,operations,signatures,settings);
+ const applicantLeases=createApplicantLeases(auth.db,notices);
+ leasePreparation=createLeasePreparation(auth.db,operations,signatures,settings,applicantLeases);
  const json=(res,status,data)=>{res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(data));};
  const redirect=(res,to)=>{res.writeHead(302,{Location:to,'Cache-Control':'no-store'}).end();};
  function dashboardTarget(value){try{const target=new URL(value,'https://ctpm.local');if(target.origin==='https://ctpm.local'&&target.pathname==='/dashboard')return target.pathname+target.search+target.hash;}catch{}return '/dashboard';}
@@ -48,7 +50,7 @@ async function main(){
  }
  const services=createServiceRoutes({accounts,notices,resident,finance,signatures,experience,agents,body,rawBody,json});
  const handoverRoutes=createHandoverRoutes({applicationMail,vacancies,freeAccess,portfolio,workspace,handover,notices,body,json});
- const leasePreparationRoutes=createLeasePreparationRoutes({preparations:leasePreparation,body,json});
+ const leasePreparationRoutes=createLeasePreparationRoutes({preparations:leasePreparation,offers:applicantLeases,body,json});
  const workbenchRoutes=createWorkbenchRoutes({workbench:createWorkbench(auth.db),body,json});
  const server=http.createServer(async(req,res)=>{
   res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('X-Frame-Options','DENY');res.setHeader('Referrer-Policy','same-origin');
@@ -115,6 +117,8 @@ async function main(){
      if(req.method==='GET')return json(res,200,{leases:operations.leases(user)});
      if(req.method==='POST')return json(res,201,{lease:operations.addLease(user,await body(req))});
     }
+    const leaseReview=pathname.match(/^\/api\/leases\/(\d+)\/review-date$/);
+    if(leaseReview&&req.method==='POST')return json(res,200,{lease:operations.updateReviewDate(user,leaseReview[1],await body(req))});
     const leaseEnd=pathname.match(/^\/api\/leases\/(\d+)\/end$/);
     if(leaseEnd&&req.method==='POST')return json(res,200,{lease:operations.endLease(user,leaseEnd[1])});
     if(pathname==='/api/ledger'){
@@ -179,7 +183,7 @@ async function main(){
    if(pathname==='/index.html')return redirect(res,user?'/dashboard':'/login');
    if(['/login','/login.html','/signup','/signup.html'].includes(pathname)&&user)return redirect(res,dashboardTarget(requestURL.searchParams.get('next')));
    if(pathname==='/signup'||pathname==='/signup.html'){const params=new URLSearchParams(requestURL.search);params.set('mode','signup');return redirect(res,'/login?'+params.toString());}
-   const relative=pathname==='/'||pathname==='/home'?'/home.html':pathname==='/dashboard'?'/index.html':pathname==='/login'?'/login.html':pathname==='/vacancies'?'/vacancies.html':pathname==='/agents'?'/agents.html':pathname==='/account-access'?'/account-access.html':pathname==='/apply'?'/apply.html':pathname==='/application-status'?'/application-status.html':pathname==='/application-email'?'/application-email.html':pathname;
+   const relative=pathname==='/'||pathname==='/home'?'/home.html':pathname==='/dashboard'?'/index.html':pathname==='/login'?'/login.html':pathname==='/vacancies'?'/vacancies.html':pathname==='/agents'?'/agents.html':pathname==='/account-access'?'/account-access.html':pathname==='/apply'?'/apply.html':pathname==='/application-status'?'/application-status.html':pathname==='/application-email'?'/application-email.html':pathname==='/lease-invitation'?'/lease-invitation.html':pathname;
    const file=path.resolve(root,'.'+decodeURIComponent(relative));
    if(!file.startsWith(root+path.sep))return json(res,403,{error:'Forbidden.'});
    fs.readFile(file,(error,data)=>{

@@ -145,7 +145,7 @@ function renderAttentionPanel(){
  const submitted=applications.filter(a=>a.status==='Submitted');
  if(urgent.length)items.push(['requests','Repair priorities',urgent.length+' urgent request'+(urgent.length===1?' needs':'s need')+' attention.','coral']);
  if(overdue.length)items.push(['ledger','Keep rent on track',money(overdue.reduce((sum,c)=>sum+c.amount_cents-c.paid_cents,0)/100)+' outstanding on overdue charges.','coral']);
- if(renewals.length)items.push(['leases','Plan the next chapter',renewals.length+' active lease'+(renewals.length===1?' is':'s are')+' approaching or past the end date.','lime']);
+ if(renewals.length)items.push(['leases','Plan the next chapter',renewals.length+' active lease'+(renewals.length===1?' is':'s are')+' approaching or past their end or renewal review date.','lime']);
  if(staff&&submitted.length)items.push(['applications','Meet your next residents',submitted.length+' new application'+(submitted.length===1?' is':'s are')+' ready to review.','lime']);
  $('#dashboard-attention').innerHTML=items.length?items.map(([page,title,description,color])=>`<button class="attention-item ${color}" data-attention-page="${page}"><span>${escapeHTML(title)}</span><strong>${escapeHTML(description)}</strong><span class="attention-arrow" aria-hidden="true">→</span></button>`).join(''):'<div class="attention-clear"><span aria-hidden="true">✦</span><div><strong>A little breathing room.</strong><p>No time-sensitive items in your current records.</p></div></div>';
 }
