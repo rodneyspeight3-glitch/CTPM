@@ -1,0 +1,9 @@
+const {test}=require('node:test'),assert=require('node:assert/strict'),{DatabaseSync}=require('node:sqlite'),{createNotifications}=require('../lib/notifications');
+test('email availability identifies missing or invalid setup and authentication pauses without exposing credentials or sending a message',async()=>{
+ const prior={...process.env},db=new DatabaseSync(':memory:');let invalid=false,calls=0;try{
+  process.env.PUBLIC_APP_URL='https://portal.example.test';process.env.SMTP_ENABLED='true';process.env.ALLOW_PAID_INTEGRATIONS='false';let ready=false;
+  const mailer={configured:()=>ready,status:()=>({host:'smtp.gmail.com',problem:ready?'':'Gmail requires a 16-character Google app password, not your regular sign-in password.'}),verify:async()=>{calls++;if(invalid){const e=Error('PRIVATE PASSWORD MUST NEVER APPEAR');e.code='EAUTH';throw e;}return {message:'Connection accepted without sending mail.'};}},n=createNotifications(db,{mailer});
+  let state=n.emailCapability();assert.equal(state.available,false);assert.equal(state.code,'SENDER_SETTINGS_INVALID');assert.match(state.message,/app password/);ready=true;assert.equal(n.emailCapability().available,true);invalid=true;await n.startupCheck();state=n.emailCapability();assert.equal(state.available,false);assert.equal(state.code,'AUTHENTICATION_FAILED');assert.doesNotMatch(JSON.stringify(state),/PRIVATE PASSWORD/);invalid=false;await n.verifySmtp({id:1,role:'admin'});assert.equal(n.emailCapability().available,true);assert.equal(calls,2);
+  process.env.SMTP_ENABLED='false';assert.equal(n.emailCapability().code,'AUTOMATIC_EMAIL_OFF');delete process.env.PUBLIC_APP_URL;delete process.env.APP_ORIGIN;delete process.env.RENDER_EXTERNAL_URL;assert.equal(n.emailCapability().code,'PUBLIC_URL_MISSING');
+ }finally{for(const key of Object.keys(process.env))if(!(key in prior))delete process.env[key];Object.assign(process.env,prior);db.close();}
+});

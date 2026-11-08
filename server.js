@@ -21,6 +21,8 @@ const {createPortfolioTools}=require('./lib/portfolio-tools');
 const {createWorkspace}=require('./lib/workspace');
 const {createHandover}=require('./lib/handover');
 const {createHandoverRoutes}=require('./lib/handover-routes');
+const {createAgentReviews}=require('./lib/agent-reviews');
+const {createAgentReviewRoutes}=require('./lib/agent-review-routes');
 const {createApplicantLeases}=require('./lib/applicant-leases');
 const {createLeasePreparation}=require('./lib/lease-preparation');
 const {createLeasePreparationRoutes}=require('./lib/lease-preparation-routes');
@@ -50,6 +52,7 @@ async function main(){
  }
  const services=createServiceRoutes({accounts,notices,resident,finance,signatures,experience,agents,body,rawBody,json});
  const handoverRoutes=createHandoverRoutes({applicationMail,vacancies,freeAccess,portfolio,workspace,handover,notices,body,json});
+ const agentReviewRoutes=createAgentReviewRoutes({reviews:createAgentReviews(auth.db,notices),body,json});
  const leasePreparationRoutes=createLeasePreparationRoutes({preparations:leasePreparation,offers:applicantLeases,body,json});
  const workbenchRoutes=createWorkbenchRoutes({workbench:createWorkbench(auth.db),body,json});
  const server=http.createServer(async(req,res)=>{
@@ -74,6 +77,7 @@ async function main(){
      const expected=process.env.APP_ORIGIN||(req.headers.host?`${process.env.NODE_ENV==='production'?'https':'http'}://${req.headers.host}`:'');
      if(!origin||origin!==expected||req.headers['sec-fetch-site']==='cross-site')return json(res,403,{error:'Request origin is not allowed.'});
     }
+    if(await agentReviewRoutes(req,res,requestURL,user))return;
     if(await leasePreparationRoutes(req,res,requestURL,user))return;
     if(await workbenchRoutes(req,res,requestURL,user))return;
     if(await handoverRoutes(req,res,requestURL,user))return;
