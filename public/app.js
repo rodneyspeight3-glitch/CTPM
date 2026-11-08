@@ -15,8 +15,8 @@ async function loadRequests(){
 function go(page,updateHash=true){
  if(typeof currentUser==='undefined'||!currentUser)return;
  portalRouteVersion++;
- const labels={overview:'Dashboard',saved:'Saved homes',homes:currentUser.role==='tenant'?'Find a home':'Property',requests:'Maintenance',documents:'Resources',team:'Manage accounts',applications:'Applications',settings:'Management settings',leases:'Leases',ledger:'Rent ledger',messages:'Messages',account:'My account','my-applications':'My applications',tours:'Property viewings',signatures:'Lease signing',searches:'Saved searches',contractors:'Contractors',reports:'Financial reports','agent-profiles':'Agent profiles',integrations:'Built-in services',workspace:'Team workspace',community:'Community',library:'Documents',help:'Help & guides',handover:'Handover',organizer:'Private organizer',workbench:'Operations hub','agent-feedback':'Agent feedback'};
- if(!Object.hasOwn(labels,page)||(['saved','searches','my-applications'].includes(page)&&currentUser.role!=='tenant')||(['team','agent-profiles','integrations','handover'].includes(page)&&currentUser.role!=='admin')||(['applications','settings','contractors','reports','workspace','workbench'].includes(page)&&currentUser.role==='tenant')){page='overview';history.replaceState(null,'','#overview');}
+ const labels={overview:'Dashboard',homes:'Property',requests:'Maintenance',documents:'Resources',team:'Manage accounts',applications:'Applications',settings:'Management settings',leases:'Leases',ledger:'Rent ledger',messages:'Messages',account:'My account','my-applications':'My applications',tours:'Property viewings',signatures:'Lease signing',searches:'Saved searches',contractors:'Contractors',reports:'Financial reports','agent-profiles':'Agent profiles',integrations:'Built-in services',workspace:'Team workspace',community:'Community',library:'Documents',help:'Help & guides',handover:'Handover',organizer:'Private organizer',workbench:'Operations hub','agent-feedback':'Agent feedback'};
+ if(!Object.hasOwn(labels,page)||(['saved','searches','my-applications'].includes(page)&&currentUser.role!=='tenant')||(['team','agent-profiles','integrations','handover'].includes(page)&&currentUser.role!=='admin')||(['homes','applications','settings','contractors','reports','workspace','workbench'].includes(page)&&currentUser.role==='tenant')){page='overview';history.replaceState(null,'','#overview');}
  document.querySelectorAll('.page').forEach(el=>el.hidden=el.id!==page);
  document.querySelectorAll('.nav-item').forEach(el=>el.classList.toggle('active',el.dataset.page===page));
  $('#crumb').textContent=labels[page];window.refreshPageSwitcher?.(page);
@@ -41,6 +41,7 @@ function card(p){
 }
 function updateBedroomOptions(){const selected=$('#beds').value;const values=[...new Set(properties.map(p=>p.beds))].sort((a,b)=>a-b);$('#beds').innerHTML='<option value="all">Any bedrooms</option>'+values.map(n=>`<option value="${n}">${n===0?'Studio':n+' bedroom'+(n===1?'':'s')}</option>`).join('');$('#beds').value=values.includes(Number(selected))&&selected!=='all'?selected:'all';}
 function renderHomes(){
+ if(typeof currentUser!=='undefined'&&currentUser?.role==='tenant'){$('#all-homes').replaceChildren();return;}
  const query=$('#search').value.toLowerCase(),beds=$('#beds').value,budget=$('#home-budget').value,sort=$('#home-sort').value,status=$('#portfolio-filter').value;
  const filtered=properties.filter(p=>(budget===''||p.price<=Number(budget))&&(status==='all'||status==='archived'?status==='all'||p.archived:!p.archived&&(status==='showcase'?p.isPreview:status==='available'?p.available:status==='unavailable'?!p.available&&!p.isPreview:true))&&(p.name+' '+p.area).toLowerCase().includes(query)&&(beds==='all'||p.beds===Number(beds)));
  if(sort==='price-low')filtered.sort((a,b)=>a.price-b.price);if(sort==='price-high')filtered.sort((a,b)=>b.price-a.price);if(sort==='name')filtered.sort((a,b)=>a.name.localeCompare(b.name));$('#all-homes').innerHTML=filtered.map(card).join('');$('#empty-homes').hidden=filtered.length>0;
@@ -94,8 +95,8 @@ $('#today').textContent=new Intl.DateTimeFormat('en-US',{month:'short',day:'nume
 
 let applications=[];
 function renderDashboard(){
- const available=properties.filter(p=>!p.isPreview&&p.available);
- $('#featured').innerHTML=available.length?available.map(card).join(''):'<div class="empty-state dashboard-empty"><h3>No available homes right now.</h3><p>Check back for new vacancies.</p></div>';
+ const resident=currentUser?.role==='tenant',available=resident?[]:properties.filter(p=>!p.isPreview&&p.available);
+ $('#featured').innerHTML=resident?'':available.length?available.map(card).join(''):'<div class="empty-state dashboard-empty"><h3>No available homes right now.</h3><p>Check back for new vacancies.</p></div>';
  renderAttentionPanel();
  $('#available-count').textContent=available.length;
  $('#portfolio-count').textContent=properties.filter(p=>!p.isPreview&&!p.archived).length;
@@ -122,8 +123,8 @@ function renderApplications(){
 $('#application-status').onchange=renderApplications;$('#application-search').oninput=renderApplications;$('#application-property').onchange=renderApplications;$('#application-sort').onchange=renderApplications;document.addEventListener('click',event=>{const button=event.target.closest('[data-application-status]');if(button){$('#application-status').value=$('#application-status').value===button.dataset.applicationStatus?'all':button.dataset.applicationStatus;renderApplications();}});
 $('#refresh-applications').onclick=loadApplications;
 async function loadSavedHomes(){
- if(currentUser?.role!=='tenant')return;
- try{savedHomes=(await api('/api/saved-homes')).properties;renderSavedHomes();renderDashboard();renderHomes();$('#saved-error').textContent='';}catch(error){$('#saved-error').textContent=error.message;}
+ // Keep existing shortlist records private; rental discovery is outside resident dashboards.
+ savedHomes=[];$('#saved-homes-list').replaceChildren();$('#saved-count').textContent='0';
 }
 function renderSavedHomes(){
  $('#saved-count').textContent=savedHomes.length;

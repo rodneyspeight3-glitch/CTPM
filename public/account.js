@@ -45,6 +45,6 @@ $('#password-form').onsubmit=async event=>{event.preventDefault();const data=Obj
  const newProperty=new URLSearchParams(location.search).get('newProperty')==='1';
  if(portalRouteVersion===initialRouteVersion){
   go(newProperty?'homes':location.hash.slice(1)||'overview',false);
-  if(newProperty){history.replaceState(null,'','/dashboard#homes');if(['admin','agent'].includes(user.role))propertyForm();else toast('Property creation is available to agents and administrators.');}
+  if(newProperty){if(['admin','agent'].includes(user.role)){history.replaceState(null,'','/dashboard#homes');propertyForm();}else{history.replaceState(null,'','/dashboard#overview');toast('Property creation is available to agents and administrators.');}}
  }else if(newProperty)history.replaceState(null,'','/dashboard'+location.hash);
 }catch(error){toast(error.message);}})();

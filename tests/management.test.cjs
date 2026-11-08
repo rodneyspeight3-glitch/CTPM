@@ -23,7 +23,7 @@ test('properties and maintenance enforce roles, isolate tenants, and survive ser
   const p=await post('/api/properties',accounts.agent,property);assert.equal(p.status,201);const saved=(await p.json()).property;
   assert.equal(saved.name,property.name);
   assert.equal((await post('/api/properties',admin,{...property,name:'Admin home'})).status,201);
-  assert.equal((await (await request('/api/properties',{cookie:accounts.tenant})).json()).properties.length,2);
+  assert.equal((await (await request('/api/properties',{cookie:accounts.tenant})).json()).properties.length,0);
   assert.equal((await post('/api/requests',admin,issue)).status,403);
   for(const changes of [{title:' '},{category:'Bogus'},{priority:'Emergency'},{location:''},{description:'x'.repeat(2001)}])assert.equal((await post('/api/requests',accounts.tenant,{...issue,...changes})).status,400);
   assert.equal((await post('/api/requests',accounts.tenant,{...issue,propertyId:99999})).status,404);
@@ -47,5 +47,18 @@ test('properties and maintenance enforce roles, isolate tenants, and survive ser
   const persisted=await list(accounts.tenant);assert.equal(persisted.length,2);assert.equal(persisted[0].status,'Cancelled');assert.equal(persisted[1].status,'Completed');assert.equal(persisted[1].staff_note,'Repair complete.');
   assert.equal((await (await request('/api/properties',{cookie:admin})).json()).properties.length,2);
   assert.equal((await request('/api/session',{cookie:admin})).status,200);
+ }finally{await app.cleanup();}
+});
+test('tenant dashboard inventory contains only homes on their active leases while public vacancies and staff portfolios remain available',async()=>{
+ const app=await fixture({SMTP_ENABLED:'false'});try{
+  const post=(path,data,cookie='')=>fetch(app.base+path,{method:'POST',headers:{Origin:app.base,'Content-Type':'application/json',Cookie:cookie},body:JSON.stringify(data)}),json=async response=>{assert.ok(response.ok,await response.clone().text());return response.json();},get=(path,cookie='')=>fetch(app.base+path,{headers:{Cookie:cookie}});
+  const login=await post('/api/login',app.credentials),admin=login.headers.get('set-cookie').split(';')[0],users=[];
+  for(const name of ['resident','other'])users.push((await json(await post('/api/admin/users',{name,email:name+'@example.test',password:app.credentials.password,role:'tenant'},admin))).user);
+  const session=await post('/api/login',{email:users[0].email,password:app.credentials.password}),tenant=session.headers.get('set-cookie').split(';')[0],inventory=require('./listing-fixtures.cjs'),properties=[];
+  for(const p of inventory.slice(0,3))properties.push((await json(await post('/api/properties',p,admin))).property);
+  assert.equal((await json(await get('/api/properties',tenant))).properties.length,0);assert.equal((await json(await get('/api/vacancies'))).properties.length,3);
+  for(const [index,user]of users.entries())await json(await post('/api/leases',{tenantId:user.id,propertyId:properties[index].id,startsOn:'2099-01-01',endsOn:'2099-12-31',monthlyRent:1700,deposit:0,notes:''},admin));
+  for(const url of ['/api/properties','/api/properties?tenantId='+users[1].id])assert.deepEqual((await json(await get(url,tenant))).properties.map(p=>p.id),[properties[0].id]);
+  assert.equal((await json(await get('/api/properties',admin))).properties.length,3);assert.deepEqual((await json(await get('/api/vacancies'))).properties.map(p=>p.id),[properties[2].id]);
  }finally{await app.cleanup();}
 });

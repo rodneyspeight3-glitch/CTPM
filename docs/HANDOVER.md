@@ -144,3 +144,9 @@ Missing agent photos now use an animated man-and-woman team illustration with th
 ## Agent animation preferences
 
 In **Admin → Public agent profiles → Edit public profile & photo**, select the agent’s stated gender for their default animation. Male and female selections show an individual man or woman; unspecified and nonbinary selections show a neutral individual. The editor previews the choice before saving. Existing profiles start unspecified; names and photos are never used to infer gender. Uploaded portraits take priority, and failed/removed photos fall back to the saved illustration. Directory cards, property agent badges and administrator previews use the same saved preference. The public API exposes only `avatarStyle`, rather than the profile’s gender field. Quiet visuals, reduced motion and print preferences still stop animations.
+
+## Welcoming public pages and resident dashboards
+
+The home page and open address application share decorative animated neighbors, a light background scene and a friendly application welcome panel. These characters are decorative and do not represent real agents or infer visitor gender. Their brief animations stop for Quiet visuals, reduced motion and print; the home page’s existing motion pause also pauses them. The application’s fields, required documents and private submission flow are unchanged.
+
+Tenant dashboards focus on the resident’s own active lease homes, maintenance, rent and documents. Vacancy cards/counts, property browsing and saved-home pages are hidden, and direct dashboard links to those discovery pages return to the overview. Existing shortlist records are retained. The private property API returns only properties linked to that tenant’s active leases; staff retain their portfolio, and public vacancy browsing and open applications remain available.

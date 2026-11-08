@@ -17,7 +17,7 @@ test('public vacancy applications and staff reviews enforce availability and pri
   const available=await (await call('/api/vacancies')).json();assert.equal(available.properties.length,4);
   assert.equal(available.properties.some(p=>p.name==='Occupied home'),false);
   assert.equal('created_by' in available.properties[0],false);
-  assert.equal((await (await call('/api/properties',{cookie:cookies.tenant})).json()).properties.length,4);
+  assert.equal((await (await call('/api/properties',{cookie:cookies.tenant})).json()).properties.length,0);
   assert.equal((await (await call('/api/properties',{cookie:admin})).json()).properties.length,5);
   assert.equal((await post('/api/properties',admin,{...inventory[0],available:'true'})).status,400);
   const id=properties[0].id,closedId=properties[4].id;
