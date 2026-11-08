@@ -1,12 +1,12 @@
 ## Configure from the administrator dashboard
 
-Administrators can now manage SMTP in **Dashboard → Built-in services**. Save a provider/mailbox/password with delivery paused, check the saved connection, or confirm **Check & enable automatic email**. These actions require the current administrator password. The saved mailbox password stays masked and is never returned. Gmail still needs a Google app password; the dashboard cannot create one for the Google account.
+Administrators can manage SMTP in **Dashboard → Built-in services**. Choose **Custom SMTP server** for any public provider that supports password/token-based SMTP login, or use the Gmail/mail.com presets. Enter its hostname, port, TLS mode, username, SMTP password and authorized sender address. Custom usernames retain their case and can differ from the sender address. Save a provider/mailbox/password with delivery paused, check the saved connection, or confirm **Check & enable automatic email**. These actions require the current administrator password. The saved mailbox password stays masked and is never returned. Gmail still needs a Google app password; the dashboard cannot create one for the Google account.
 
 The override is encrypted in SQLite with a separate `.smtp-key` on the persistent disk. Back up that key separately from SQLite backups. Existing hosting variables continue to apply until an override is saved, and the administrator can explicitly return to them. See [the handover guide](HANDOVER.md#smtp-settings-in-the-administrator-dashboard) for recovery, key storage, live changes and the `EMAIL_DELIVERY_DISABLED=true` staging lock.
 
-# Automated email through Gmail or mail.com SMTP
+# Automated email through your SMTP provider
 
-The application uses Nodemailer and the existing SQLite email outbox. Personal Gmail is supported without a paid email subscription when the account allows Google app passwords. mail.com is also supported for an existing Premium mailbox; its free accounts cannot use SMTP. No subscription is purchased or upgraded by the app.
+The application uses Nodemailer and the existing SQLite email outbox. Custom providers can use TLS from connection or mandatory STARTTLS on any valid provider port (1–65535), including 465, 587 and 2525. Plaintext, disabled certificate validation, URLs in the hostname field and private/internal destinations are refused. DNS answers are checked on each connection, all must be public, and the actual socket connects only to those validated addresses. TLS still checks the original server hostname. A connection check verifies encryption and login; provider sender authorization and inbox delivery require their own verification. Personal Gmail is supported without a paid email subscription when the account allows Google app passwords. mail.com is also supported for an existing Premium mailbox; its free accounts cannot use SMTP. No subscription is purchased or upgraded by the app.
 
 ## Optional hosting fallback in the existing Render service
 
@@ -15,16 +15,17 @@ These variables apply when the SMTP form shows **Hosting settings**. A saved das
 | Render Environment variable | Value |
 |---|---|
 | `SMTP_ENABLED` | `true` enables the hosting SMTP fallback; `false` pauses that fallback |
-| `SMTP_HOST` | `smtp.gmail.com` for personal Gmail, or `smtp.mail.com` |
-| `SMTP_PORT` | `465` for TLS, or `587` for mandatory STARTTLS |
-| `SMTP_USER` | The complete owner-authorized sender mailbox address |
-| `SMTP_FROM` | The same owner-authorized sender mailbox address |
-| `SMTP_PASSWORD` | Google app password for Gmail, or that mail.com mailbox's SMTP password; enter privately in Render |
+| `SMTP_HOST` | Your provider’s public hostname, e.g. `smtp.fastmail.com`, `smtp.gmail.com` or `smtp.mail.com` |
+| `SMTP_PORT` | Your provider’s port from 1–65535; usually `465`, `587` or `2525` |
+| `SMTP_SECURITY` | `tls` or `starttls` (mandatory encryption); defaults to TLS for port 465, STARTTLS for other ports |
+| `SMTP_USER` | Provider SMTP username; Gmail/mail.com use the complete sender mailbox address |
+| `SMTP_FROM` | Provider-authorized sender address; Gmail/mail.com require the same mailbox as the login |
+| `SMTP_PASSWORD` | Provider SMTP password/token; Gmail requires a Google app password; enter privately in Render |
 | `PUBLIC_APP_URL` | `https://ctpm.onrender.com`; Render's service URL is a fallback |
 
-Keep `ALLOW_PAID_INTEGRATIONS` unset or `false`. SMTP does not require that legacy flag and never activates Stripe or Resend. When SMTP is selected but incomplete, the app does not fall back to another provider. Never place a mailbox password in source control, chat, Management settings, or public agent profiles. Follow the provider setup below. Only the two supported SMTP hosts and TLS ports 465/587 are accepted; private-network and arbitrary SMTP hosts are refused.
+Keep `ALLOW_PAID_INTEGRATIONS` unset or `false`. SMTP does not require that legacy flag and never activates Stripe or Resend. When SMTP is selected but incomplete, the app does not fall back to another provider. Never place a mailbox password in source control, chat, Management settings, or public agent profiles. Follow the provider setup below. Custom public SMTP hosts and provider ports are accepted with mandatory TLS or STARTTLS; private-network destinations are refused. Network reachability, port restrictions, sender verification and quotas depend on your provider and Render. OAuth-only or unauthenticated relays are not supported by this password-based form.
 
-Use the same authorized mailbox as both login and sender. The app rejects mismatched SMTP login and From addresses. A dedicated company mailbox is recommended; the owner may instead choose a personal mailbox as both values. That choice makes the personal address visible to recipients. Sender display name is **Come Together Property Management (No Reply)**. The selected address remains visible in From, envelope, and message headers. TLS encrypts the SMTP connection; it does not hide sender identity or provide end-to-end message encryption. Mailbox addresses and passwords are configured privately in Render, rather than embedded in source.
+For custom SMTP, use your provider’s exact login username and an authorized From address; the username may be a token rather than an email address. For the Gmail and mail.com presets, use the same authorized mailbox as both login and sender. A dedicated company mailbox is recommended; the owner may instead choose a personal mailbox as both values. That choice makes the personal address visible to recipients. Sender display name is **Come Together Property Management (No Reply)**. The selected address remains visible in From, envelope, and message headers. TLS encrypts the SMTP connection; it does not hide sender identity or provide end-to-end message encryption. Mailbox addresses and passwords are configured privately in Render, rather than embedded in source.
 
 ## Personal Gmail setup (no paid subscription)
 
@@ -93,6 +94,6 @@ Photo source: [Unsplash building photograph](https://images.unsplash.com/photo-1
 
 All automated delivery passes through a shared formatter, including welcome, verification, recovery, general notifications, application receipts, progress updates, and document requests. Existing queued mail receives the same policy when delivered. The sender display name includes **(No Reply)**, every body says **Please do not reply**, and help links point to portal messages and the public management contact section. The footer is added once, including during retries.
 
-The app sets `Auto-Submitted: auto-generated` and `X-Auto-Response-Suppress: All` to discourage automatic reply loops, preserving application unsubscribe headers. It keeps the authenticated sender address and envelope for legitimate delivery and bounces. It does not invent `noreply@realtyagent.com`, redirect replies to an unrelated mailbox, or block a person from manually replying. A literal no-reply sender needs its own provider-authorized mailbox and matching credentials under the existing matching-mailbox rule.
+The app sets `Auto-Submitted: auto-generated` and `X-Auto-Response-Suppress: All` to discourage automatic reply loops, preserving application unsubscribe headers. It keeps the authenticated sender address and envelope for legitimate delivery and bounces. It does not invent `noreply@realtyagent.com`, redirect replies to an unrelated mailbox, or block a person from manually replying. A literal no-reply sender needs provider authorization; Gmail and mail.com require its matching mailbox credentials. Custom providers can authorize a sender separately from the SMTP login.
 
 When SMTP is configured, startup performs a TLS/login check without sending a test email. The check never blocks website startup. Outbox delivery waits during the check, and failures pause delivery with sanitized status codes. The admin service connections page shows the last successful connection check; a complete configuration alone is not proof of successful authentication or inbox delivery.
