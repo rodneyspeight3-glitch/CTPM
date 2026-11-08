@@ -21,13 +21,15 @@ const {createPortfolioTools}=require('./lib/portfolio-tools');
 const {createWorkspace}=require('./lib/workspace');
 const {createHandover}=require('./lib/handover');
 const {createHandoverRoutes}=require('./lib/handover-routes');
+const {createLeasePreparation}=require('./lib/lease-preparation');
+const {createLeasePreparationRoutes}=require('./lib/lease-preparation-routes');
 const {createWorkbench}=require('./lib/workbench');
 const {createWorkbenchRoutes}=require('./lib/workbench-routes');
 const root=path.join(__dirname,'public');
 async function main(){
  const auth=await createAuth(process.env.DATABASE_PATH||path.join(__dirname,'.data','app.sqlite'));
  const management=createManagement(auth.db);seedShowcase(auth.db);
- let resident;const vacancies=createVacancies(auth.db,{onEvent:(...args)=>resident.applicationEvent(...args)});
+ let resident,leasePreparation;const vacancies=createVacancies(auth.db,{onEvent:(...args)=>resident.applicationEvent(...args),onDecision:(...args)=>leasePreparation.ensure(...args)});
  const settings=createSettings(auth.db);
  const operations=createOperations(auth.db);
  const notices=createNotifications(auth.db),accounts=createAccountServices(auth.db,notices);
@@ -35,6 +37,7 @@ async function main(){
  resident=createResidentServices(auth.db,notices,{applicationMail});
  const finance=createFinance(auth.db,notices),signatures=createSignatures(auth.db,notices),experience=createExperience(auth.db,notices),agents=createAgents(auth.db);
  const freeAccess=createFreeAccess(auth.db,operations,notices,applicationMail),portfolio=createPortfolioTools(auth.db,management,resident),workspace=createWorkspace(auth.db,notices),handover=createHandover(auth.db,operations,freeAccess,settings);
+ leasePreparation=createLeasePreparation(auth.db,operations,signatures,settings);
  const json=(res,status,data)=>{res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(data));};
  const redirect=(res,to)=>{res.writeHead(302,{Location:to,'Cache-Control':'no-store'}).end();};
  function dashboardTarget(value){try{const target=new URL(value,'https://ctpm.local');if(target.origin==='https://ctpm.local'&&target.pathname==='/dashboard')return target.pathname+target.search+target.hash;}catch{}return '/dashboard';}
@@ -45,6 +48,7 @@ async function main(){
  }
  const services=createServiceRoutes({accounts,notices,resident,finance,signatures,experience,agents,body,rawBody,json});
  const handoverRoutes=createHandoverRoutes({applicationMail,vacancies,freeAccess,portfolio,workspace,handover,notices,body,json});
+ const leasePreparationRoutes=createLeasePreparationRoutes({preparations:leasePreparation,body,json});
  const workbenchRoutes=createWorkbenchRoutes({workbench:createWorkbench(auth.db),body,json});
  const server=http.createServer(async(req,res)=>{
   res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('X-Frame-Options','DENY');res.setHeader('Referrer-Policy','same-origin');
@@ -68,6 +72,7 @@ async function main(){
      const expected=process.env.APP_ORIGIN||(req.headers.host?`${process.env.NODE_ENV==='production'?'https':'http'}://${req.headers.host}`:'');
      if(!origin||origin!==expected||req.headers['sec-fetch-site']==='cross-site')return json(res,403,{error:'Request origin is not allowed.'});
     }
+    if(await leasePreparationRoutes(req,res,requestURL,user))return;
     if(await workbenchRoutes(req,res,requestURL,user))return;
     if(await handoverRoutes(req,res,requestURL,user))return;
     if(await services(req,res,requestURL,user))return;

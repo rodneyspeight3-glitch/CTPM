@@ -7,7 +7,7 @@
   Submitted:'Management has received the application and has not recorded a decision yet.',
   Reviewing:'Management is reviewing the application and may request more information.',
   Contacted:'Management recorded a contact update. Check your supplied contact details and private portal.',
-  Approved:'Management approved this application. Contact the team to confirm availability and next steps. Approval does not reserve a home or create a lease.',
+  Approved:'Management approved this application. Contact the team to confirm availability and next steps. Approval alone does not reserve a home or activate a lease. Management reviews the lease draft before sending it for signing.',
   Rejected:'Management rejected this application. Contact the team if you have questions about the decision.',
   Closed:'Management closed the review. This status alone does not mean approval or rejection; contact the team for the outcome.',
   Withdrawn:'This application was withdrawn. The submitted record is retained.'
