@@ -13,7 +13,7 @@ test('agent-created properties assign their creator; admin co-agents persist and
   assert.equal((await s.post('/api/properties',inventory[0],s.cookies.tenant)).status,403);
   let changed=await s.post('/api/properties/'+property.id+'/edit',{...inventory[0],agentIds:[s.users.alpha.id,s.users.beta.id]});assert.equal(changed.status,200);assert.equal(changed.data.property.agents.length,2);
   const response=await s.call('/api/vacancies',{cookie:''}),publicData=await response.json();property=publicData.properties.find(p=>p.id===property.id);assert.equal(property.agents.length,2);assert.equal(property.assignedAgentIds,undefined);assert.equal(property.unavailableAgents,undefined);assert.doesNotMatch(JSON.stringify(property),/alpha-private|beta-private|password_hash|photo_data|created_by/);
-  assert.deepEqual(Object.keys(property.agents[0]).sort(),['areas','bio','email','hasPhoto','id','name','phone','title','updated_at'].sort());
+  assert.deepEqual(Object.keys(property.agents[0]).sort(),['areas','avatarStyle','bio','email','hasPhoto','id','name','phone','title','updated_at'].sort());
   const before=(await(await s.call('/api/properties')).json()).properties.length;
   for(const ids of [[s.users.tenant.id],[999999],[s.users.alpha.id,s.users.alpha.id],['2']])assert.equal((await s.post('/api/properties',{...inventory[0],agentIds:ids})).status,400);
   assert.equal((await(await s.call('/api/properties')).json()).properties.length,before);
@@ -41,4 +41,23 @@ test('the legacy creator backfill is one-time and never restores an assignment a
   auth.db.exec('CREATE TABLE properties(id INTEGER PRIMARY KEY,name TEXT,area TEXT,address TEXT,price REAL,beds INTEGER,baths REAL,size INTEGER,type TEXT,image INTEGER,created_by INTEGER,created_at TEXT)');const p=inventory[0];auth.db.prepare('INSERT INTO properties VALUES(1,?,?,?,?,?,?,?,?,?,?,?)').run(p.name,p.area,p.address,p.price,p.beds,p.baths,p.size,p.type,p.image,agent.id,'2026-01-01');
   let management=createManagement(auth.db);assert.deepEqual(management.listProperties(admin)[0].assignedAgentIds,[agent.id]);management.editProperty(admin,1,{...p,agentIds:[other.id]});assert.equal(auth.db.prepare('SELECT created_by FROM properties').get().created_by,agent.id);auth.db.close();auth=await createAuth(file);management=createManagement(auth.db);assert.deepEqual(management.listProperties(admin)[0].assignedAgentIds,[other.id]);management.editProperty(admin,1,{...p,agentIds:[]});auth.db.close();auth=await createAuth(file);management=createManagement(auth.db);assert.deepEqual(management.listProperties(admin)[0].assignedAgentIds,[]);assert.equal(auth.db.prepare('SELECT COUNT(*) AS n FROM property_agent_migrations').get().n,1);
  }finally{auth?.db.close();fs.rmSync(directory,{recursive:true,force:true});}
+});
+
+test('agent gender controls default portraits, is admin-managed, survives photo changes and restarts, and only presentation style is public',async()=>{
+ const s=await setup();try{
+  const agent=s.users.alpha,profile={displayName:'Public Agent',title:'Leasing agent',bio:'',email:'',phone:'',areas:''},endpoint='/api/admin/agents/'+agent.id+'/profile';
+  const directory=async()=>((await(await s.call('/api/agents',{cookie:''})).json()).agents.find(a=>a.id===agent.id));assert.equal((await directory()).avatarStyle,'neutral');
+  for(const cookie of ['',s.cookies.alpha,s.cookies.tenant])assert.ok([401,403].includes((await s.post(endpoint,{...profile,gender:'female'},cookie)).status));
+  const property=(await s.post('/api/properties',inventory[0],s.cookies.alpha)).data.property;
+  for(const [gender,style] of [['male','male'],['female','female'],['nonbinary','neutral'],['unspecified','neutral']]){assert.equal((await s.post(endpoint,{...profile,gender})).status,200);const publicProfile=await directory();assert.equal(publicProfile.avatarStyle,style);assert.equal(publicProfile.gender,undefined);const publicProperties=(await(await s.call('/api/vacancies',{cookie:''})).json()).properties;assert.equal(publicProperties.find(p=>p.id===property.id).agents[0].avatarStyle,style);}
+  assert.equal((await s.post(endpoint,{...profile,gender:'female'})).status,200);for(const gender of ['guess-from-name','',{},null])assert.equal((await s.post(endpoint,{...profile,gender})).status,400);assert.equal((await directory()).avatarStyle,'female');
+  assert.equal((await s.post(endpoint,profile)).status,200);assert.equal((await directory()).avatarStyle,'female');await s.post('/api/admin/agents/'+agent.id+'/photo',{mime:'image/png',data:png});assert.equal((await directory()).hasPhoto,1);await s.post('/api/admin/agents/'+agent.id+'/remove-photo',{});assert.equal((await directory()).avatarStyle,'female');
+  await s.app.stop();s.app.base=await s.app.start();assert.equal((await directory()).avatarStyle,'female');const saved=(await(await s.call('/api/admin/agents')).json()).agents.find(a=>a.id===agent.id);assert.equal(saved.gender,'female');assert.equal(saved.hasPhoto,false);
+ }finally{await s.app.cleanup();}
+});
+test('existing agent profiles migrate to unspecified gender without changing their photo or public biography',()=>{
+ const {DatabaseSync}=require('node:sqlite'),{createAgents}=require('../lib/agents'),db=new DatabaseSync(':memory:');try{
+  db.exec("CREATE TABLE users(id INTEGER PRIMARY KEY,name TEXT,role TEXT,active INTEGER);INSERT INTO users VALUES(1,'Admin','admin',1),(2,'Alex','agent',1);CREATE TABLE agent_profiles(user_id INTEGER PRIMARY KEY,display_name TEXT NOT NULL,title TEXT NOT NULL,bio TEXT NOT NULL,public_email TEXT NOT NULL,public_phone TEXT NOT NULL,areas TEXT NOT NULL,photo_mime TEXT,photo_data BLOB,updated_at TEXT NOT NULL,updated_by INTEGER NOT NULL);INSERT INTO agent_profiles VALUES(2,'Public Alex','Leasing agent','Existing introduction','','','Cedar','image/png',X'010203','2026-01-01',1)");
+  let agents=createAgents(db);assert.equal(agents.list()[0].avatarStyle,'neutral');assert.equal(agents.list()[0].bio,'Existing introduction');assert.equal(agents.editList({role:'admin'})[0].gender,'unspecified');assert.deepEqual(Buffer.from(agents.photo(2).data),Buffer.from([1,2,3]));agents=createAgents(db);assert.equal(db.prepare('PRAGMA table_info(agent_profiles)').all().filter(c=>c.name==='gender').length,1);assert.equal(agents.list()[0].hasPhoto,1);
+ }finally{db.close();}
 });
