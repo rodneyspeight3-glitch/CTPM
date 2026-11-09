@@ -48,6 +48,7 @@ body.dashboard-page{--dashboard-muted:#4c626b;--dashboard-danger:#9d3428}
 
 /* Inputs and error messages remain legible before and after entering a value. */
 .dashboard-page :is(input,select,textarea){color:var(--ink)}
+.dashboard-page :is(input:not([type=checkbox]):not([type=radio]),select,textarea){background-color:var(--card);transition-property:border-color,box-shadow}
 .dashboard-page :is(input,textarea)::placeholder{color:var(--dashboard-muted);opacity:1}
 .dashboard-page :is(.service-error,.danger-link,.over-budget p,[role=alert]){color:var(--dashboard-danger)}
 .dashboard-page :is(#password-error,#team-error,#create-user-error,#requests-error,#applications-error,#application-error,#property-error,#request-error,#settings-error,#service-form-error,#gallery-error,#video-error,#review-application-error,#smtp-settings-error,#smtp-reset-error){color:var(--dashboard-danger)}
