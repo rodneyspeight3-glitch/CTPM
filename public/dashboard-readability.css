@@ -1,0 +1,72 @@
+/* Keep resident and staff text readable without changing public page layouts. */
+body.dashboard-page{--dashboard-muted:#4c626b;--dashboard-danger:#9d3428}
+[data-theme=dark] body.dashboard-page{--dashboard-muted:#c0d8d6;--dashboard-danger:#ffb7ab}
+[data-contrast=true] body.dashboard-page{--dashboard-muted:var(--muted)}
+
+/* Navigation and secondary labels need contrast on both sidebar surfaces. */
+.dashboard-page .sidebar :is(.workspace-label,.nav-section-label){color:var(--dashboard-muted);font-size:10px;line-height:1.65;letter-spacing:1.25px;font-weight:650}
+.dashboard-page .sidebar .nav-item{font-size:12px;line-height:1.5}
+.dashboard-page .sidebar .nav-item:not(.active){color:var(--dashboard-muted)}
+.dashboard-page .sidebar .brand{font-size:11px}
+.dashboard-page .sidebar .brand small{font-size:8px;line-height:1.6;letter-spacing:1px}
+.dashboard-page .sidebar .profile small{font-size:11px;color:var(--dashboard-muted);line-height:1.5}
+.dashboard-page .profile>div{min-width:0;overflow-wrap:anywhere}
+.dashboard-page .profile .text-link{flex-shrink:0;font-size:12px}
+.dashboard-page :is(.breadcrumb,.date-pill){color:var(--dashboard-muted);font-size:12px;line-height:1.5}
+.dashboard-page #crumb{color:var(--ink)}
+.dashboard-page .top-actions>a{font-size:12px}
+.dashboard-page .main-shell>main>footer{color:var(--dashboard-muted);font-size:11px;line-height:1.7}
+.dashboard-page .section-heading{flex-wrap:wrap;gap:12px}
+.dashboard-page :is(.subtle,.results-caption,.account-caption,.form-note,.request-meta,.session-row p,.page-heading p:not(.eyebrow)){color:var(--dashboard-muted)}
+.dashboard-page :is(.subtle,.form-note,.request-meta){font-size:12px;line-height:1.75}
+.dashboard-page .page-heading .eyebrow{color:var(--green)}
+.dashboard-page .eyebrow:not([data-application-state=Approved]):not([data-application-state=Rejected]){color:var(--dashboard-muted);font-size:10px;line-height:1.65}
+
+/* Summary labels and helper copy inherit the theme instead of old olive colors. */
+.dashboard-page .dashboard-stats button>span{color:var(--dashboard-muted);font-size:12px;line-height:1.6}
+.dashboard-page #overview .dashboard-stats button:first-child>span{color:#e5f5f2}
+.dashboard-page .quick-actions small{color:var(--dashboard-muted);font-size:12px;line-height:1.6}
+.dashboard-page .care-card{background:var(--accent-soft);color:var(--ink);border-color:var(--line)}
+.dashboard-page .care-card :is(h3,h4){color:var(--ink)}
+.dashboard-page .care-card p,.dashboard-page .notice p,.dashboard-page .empty-state p{color:var(--dashboard-muted);font-size:13px;line-height:1.8}
+.dashboard-page .notice>span{color:var(--dashboard-muted)}
+.dashboard-page .notice h4{font-size:13px;line-height:1.6}
+.dashboard-page .care-card .text-link{font-size:12px}
+.dashboard-page .hero-copy>p,.dashboard-page .hero-label{color:#fff}
+.dashboard-page .hero-copy>p{font-size:13px;line-height:1.8}
+.dashboard-page .hero-label{font-size:10px;line-height:1.6}
+
+/* Light panels must not retain white backgrounds when their text turns light. */
+.dashboard-page :is(.service-filter-form,.service-callout,.document-fingerprint){background:var(--accent-soft);color:var(--ink);border-color:var(--line)}
+.dashboard-page :is(.resources details,.neighborhood-play){background:var(--card);color:var(--ink);border-color:var(--line)}
+.dashboard-page :is(.resources summary,.neighborhood-play>summary){color:var(--ink);line-height:1.7}
+.dashboard-page :is(.resources p,.notice-card p,.session-row p,.application-facts dt){color:var(--dashboard-muted)}
+.dashboard-page .service-table :is(th,td){color:var(--ink);border-color:var(--line);font-size:12px}
+.dashboard-page .service-table thead th{background:var(--accent-soft);color:var(--ink)}
+.dashboard-page .request-row>.eyebrow:not([data-application-state=Approved]):not([data-application-state=Rejected]){background:var(--accent-soft);color:var(--ink)}
+.dashboard-page .text-link{color:var(--green)}
+
+/* Inputs and error messages remain legible before and after entering a value. */
+.dashboard-page :is(input,select,textarea){color:var(--ink)}
+.dashboard-page :is(input,textarea)::placeholder{color:var(--dashboard-muted);opacity:1}
+.dashboard-page :is(.service-error,.danger-link,.over-budget p,[role=alert]){color:var(--dashboard-danger)}
+.dashboard-page :is(#password-error,#team-error,#create-user-error,#requests-error,#applications-error,#application-error,#property-error,#request-error,#settings-error,#service-form-error,#gallery-error,#video-error,#review-application-error,#smtp-settings-error,#smtp-reset-error){color:var(--dashboard-danger)}
+
+/* The help launcher should not cover the account name or sign-out link. */
+@media(min-width:981px){.dashboard-page #site-help-trigger{left:auto;right:122px}.dashboard-page #site-help-dialog{left:auto;right:16px}}
+@media(max-width:700px){.dashboard-page .topbar{height:auto;min-height:64px;align-items:center;flex-wrap:wrap;gap:12px;padding-top:14px;padding-bottom:14px}.dashboard-page .breadcrumb{min-width:0;overflow-wrap:anywhere}.dashboard-page .top-actions{flex-wrap:wrap;gap:12px}}
+@media print{body.dashboard-page{--dashboard-muted:#35454b;--dashboard-danger:#80271f}}
+.dashboard-page #portal-title{color:var(--dashboard-muted)}
+.dashboard-page .smtp-reset{background:var(--card);color:var(--ink)}
+.dashboard-page .smtp-reset>summary{color:var(--ink)}
+.dashboard-page .lease-board-heading p:not(.eyebrow){color:var(--dashboard-muted)}
+.dashboard-page .hero-caption{top:24px;bottom:auto;max-width:240px}
+.dashboard-page .hero-caption span{font-size:10px;line-height:1.6}
+.dashboard-page .hero-caption strong{font-size:13px;line-height:1.6}
+.dashboard-page details,.dashboard-page .application-document{background:var(--card);color:var(--ink);border-color:var(--line)}
+.dashboard-page .application-document p,.dashboard-page .application-decision-summary p,.dashboard-page .review-timeline span{color:var(--dashboard-muted)}
+.dashboard-page .review-timeline span{font-size:12px;line-height:1.7}
+.dashboard-page #display-dialog :is(details,.display-check){background:var(--card);color:var(--ink)}
+.dashboard-page #display-dialog .display-grid label{color:var(--dashboard-muted);font-size:12px}
+
+.dashboard-page .application-list-status{font-size:11px;line-height:1.65}
