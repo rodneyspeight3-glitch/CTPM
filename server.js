@@ -4,6 +4,7 @@ const path = require('node:path');
 const {createAuth}=require('./lib/auth');
 const {createManagement}=require('./lib/management');
 const {createVacancies}=require('./lib/vacancies');
+const {applicationPdf}=require('./lib/application-pdf');
 const {createSettings}=require('./lib/settings');
 const {createOperations}=require('./lib/operations');
 const {seedShowcase}=require('./lib/showcase');
@@ -159,6 +160,13 @@ async function main(){
     const applicationDocument=pathname.match(/^\/api\/application-documents\/(\d+)\/(download|delete)$/);
     if(applicationDocument&&['GET','HEAD'].includes(req.method)&&applicationDocument[2]==='download'){const doc=vacancies.document(user,applicationDocument[1]),ext={'application/pdf':'pdf','image/png':'png','image/jpeg':'jpg'}[doc.mime];res.writeHead(200,{'Content-Type':doc.mime,'Content-Disposition':`attachment; filename="application-document-${doc.id}.${ext}"`,'Cache-Control':'private, no-store'});return res.end(req.method==='HEAD'?undefined:doc.data);}
     if(applicationDocument&&req.method==='POST'&&applicationDocument[2]==='delete')return json(res,200,vacancies.removeDocument(user,applicationDocument[1],await body(req)));
+    const applicationPdfDownload=pathname.match(/^\/api\/applications\/(\d+)\/download-pdf$/);
+    if(applicationPdfDownload&&['GET','HEAD'].includes(req.method)){
+     const packet=vacancies.applicationPacket(user,applicationPdfDownload[1]),data=await applicationPdf(packet.application,packet.documents);
+     const reference=packet.application.reference.replace(/[^A-Za-z0-9_-]/g,'');
+     res.writeHead(200,{'Content-Type':'application/pdf','Content-Disposition':`attachment; filename="application-${reference}-complete.pdf"`,'Cache-Control':'private, no-store','Content-Length':data.length});
+     return res.end(req.method==='HEAD'?undefined:data);
+    }
     const fullApplication=pathname.match(/^\/api\/applications\/(\d+)$/);
     if(fullApplication&&req.method==='GET')return json(res,200,{application:vacancies.application(user,fullApplication[1])});
     if(pathname==='/api/applications'&&req.method==='GET')return json(res,200,{applications:vacancies.listApplications(user)});
