@@ -9,6 +9,18 @@ async function setup(){
  return {app,call,post,json,path,detail,save,send,guest,property,application,agentCookie,db};
 }
 const token=result=>result.trackingUrl.split('=')[1];
+async function uploadedApplicant(s,name,email,bytes){
+ const receipt=await s.json(await s.post('/api/open-applications',rentalApplication({name,email,requestedAddress:s.property.address}),''));
+ const application=(await s.json(await s.call('/api/applications'))).applications.find(a=>a.reference===receipt.reference);
+ await s.json(await s.post('/api/applications/'+application.id+'/status',{status:'Approved',note:'Independently reviewed applicant',confirmDecision:true,expectedUpdatedAt:application.updated_at},s.agentCookie));
+ const path='/api/lease-preparations/'+application.id;let p=(await s.json(await s.call(path))).preparation;
+ p=(await s.json(await s.post(path+'/save',{revision:p.revision,source:'upload',values:{...p.values,propertyId:s.property.id,propertyAddress:s.property.address,monthlyRent:1650,deposit:500}},s.agentCookie))).preparation;
+ p=(await s.json(await s.post(path+'/upload',{revision:p.revision,name:email.split('@')[0]+'.pdf',data:bytes.toString('base64')},s.agentCookie))).preparation;
+ return {application,path,preparation:p,name,email,bytes};
+}
+async function uploadedPdf(label){const pdf=await PDFDocument.create();pdf.addPage().drawText(label);return Buffer.from(await pdf.save());}
+async function inviteUploaded(s,applicant){return (await s.json(await s.post(applicant.path+'/send',{revision:applicant.preparation.revision,confirm:true,delivery:'applicant'},s.agentCookie))).preparation;}
+async function signInvitation(s,sent,name,email){const link=token(sent),opened=(await s.json(await s.guest('open',{token:link}))).agreement;return s.guest('sign',{token:link,name,email,documentHash:opened.documentHash,consent:true,reviewed:true});}
 test('the supplied lease becomes a private editable 61-clause template and account-free invitations neither create accounts nor activate leases',async()=>{
  const s=await setup();try{
   const {preparation:p,sourceTemplate}=await s.detail();assert.equal(p.values.tenantId,null);for(let n=1;n<=61;n++)assert.match(sourceTemplate.body,new RegExp('(?:^|\\n\\n)'+n+'\\.'));assert.equal(p.values.terms,company.body);assert.doesNotMatch(company.body,/GRICELDA|LETA STEVENS|BRANDON HALEY|424 N Palm|765.543|619.967|December 15th|2,500/);assert.match(company.body,/Megan's Law/);assert.match(company.body,/Lead Warning/);
@@ -39,11 +51,58 @@ test('staff can replace or withdraw links; expiry, stale changes and changed app
   app=(await s.json(await s.call('/api/applications/'+app.id))).application;await s.json(await s.post('/api/applications/'+app.id+'/status',{status:'Approved',note:'Reviewed again',expectedUpdatedAt:app.updated_at,confirmDecision:true}));await s.save();const next=await s.send(),nextToken=token(next);const connection=s.db();try{connection.prepare('UPDATE applicant_lease_offers SET expires_at=0 WHERE id=?').run(next.invitation.id);}finally{connection.close();}assert.equal((await s.guest('open',{token:nextToken})).status,404);assert.equal((await s.detail()).preparation.invitation.status,'Expired');const expired=(await s.detail()).preparation.invitation;assert.equal((await s.post(s.path+'/invitation-link',{offerId:expired.id,expectedUpdatedAt:expired.updatedAt,confirm:true})).status,409);await s.save({deposit:750});const newest=await s.send();assert.equal((await s.call(s.path+'/invitation-original?offerId='+sent.invitation.id)).status,200);assert.ok((await s.detail()).invitationHistory.length>=3);assert.notEqual(token(newest),nextToken);await s.json(await s.guest('decline',{token:token(newest),reason:'I need a different term.'}));assert.equal((await s.detail()).preparation.invitation.status,'Declined');assert.equal((await s.guest('sign',{token:token(newest)})).status,409);
  }finally{await s.app.cleanup();}
 });
-test('active invitations prevent conflicting home assignments and uploaded agreements retain exact bytes',async()=>{
+test('same-address applicants retain separate uploaded PDFs, private signatures and staff-only records before and after home assignment',async()=>{
  const s=await setup();try{
-  let p=await s.save();const pdf=await PDFDocument.create();pdf.addPage().drawText('Uploaded company agreement');const bytes=Buffer.from(await pdf.save());p=(await s.json(await s.post(s.path+'/upload',{revision:p.revision,name:'company.pdf',data:bytes.toString('base64')}))).preparation;const sent=await s.send(),link=token(sent);assert.deepEqual(Buffer.from(await(await s.guest('original',{token:link})).arrayBuffer()),bytes);
-  const tenant=(await s.json(await s.post('/api/admin/users',{name:'Other Resident',email:'other@example.test',password:s.app.credentials.password,role:'tenant'}))).user;assert.equal((await s.post('/api/leases',{tenantId:tenant.id,propertyId:s.property.id,startsOn:'2099-01-15',endsOn:'2100-01-14',monthlyRent:1650,deposit:0,notes:''})).status,409);
-  const receipt=await s.json(await s.post('/api/vacancies/'+s.property.id+'/applications',rentalApplication({name:'Other Resident',email:tenant.email}),''));const other=(await s.json(await s.call('/api/applications'))).applications.find(a=>a.reference===receipt.reference);await s.json(await s.post('/api/applications/'+other.id+'/status',{status:'Approved',note:'Reviewed second applicant',expectedUpdatedAt:other.updated_at,confirmDecision:true}));let draft=(await s.json(await s.call('/api/lease-preparations/'+other.id))).preparation;draft=(await s.json(await s.post('/api/lease-preparations/'+other.id+'/save',{revision:draft.revision,source:'template',values:{...draft.values,deposit:0,terms:'Agreement with {{tenantName}} at {{propertyAddress}}.'}}))).preparation;assert.equal((await s.post('/api/lease-preparations/'+other.id+'/send',{revision:draft.revision,confirm:true,delivery:'applicant'})).status,409);
+  let p=await s.save();const firstBytes=await uploadedPdf('First applicant original agreement');
+  p=(await s.json(await s.post(s.path+'/upload',{revision:p.revision,name:'first-applicant.pdf',data:firstBytes.toString('base64')}))).preparation;
+  const first=await s.send(),firstToken=token(first),secondBytes=await uploadedPdf('Second applicant original agreement');
+  const secondApplicant=await uploadedApplicant(s,'Other Resident','other@example.test',secondBytes),second=await inviteUploaded(s,secondApplicant),secondToken=token(second);
+  assert.notEqual(first.invitation.id,second.invitation.id);assert.notEqual(firstToken,secondToken);assert.equal((await s.call(s.path+'/invitation-original?offerId='+second.invitation.id)).status,404);
+  for(const [sent,name,bytes]of [[first,'Future Resident',firstBytes],[second,'Other Resident',secondBytes]]){
+   const {agreement}=await s.json(await s.guest('open',{token:token(sent)}));assert.equal(agreement.tenantName,name);assert.equal(agreement.canSign,true);
+   assert.equal(Object.keys(agreement).some(key=>/other|applicants|count|invitations/i.test(key)),false);
+   assert.deepEqual(Buffer.from(await(await s.guest('original',{token:token(sent)})).arrayBuffer()),bytes);
+  }
+  assert.equal((await signInvitation(s,first,'Future Resident','future-resident@example.test')).status,200);
+  assert.equal((await s.json(await s.guest('open',{token:secondToken}))).agreement.canSign,true);
+  assert.equal((await signInvitation(s,second,'Other Resident','other@example.test')).status,200);
+  assert.equal((await s.detail()).preparation.invitation.status,'Signed');
+  assert.equal((await s.json(await s.call(secondApplicant.path))).preparation.invitation.status,'Signed');
+  const tenant=(await s.json(await s.post('/api/admin/users',{name:'Future Resident',email:'future-resident@example.test',password:s.app.credentials.password,role:'tenant'}))).user;
+  const tenantLogin=await s.post('/api/login',{email:tenant.email,password:s.app.credentials.password},''),tenantCookie=tenantLogin.headers.get('set-cookie').split(';')[0];
+  for(const url of ['/api/lease-preparations',secondApplicant.path,secondApplicant.path+'/invitation-original',secondApplicant.path+'/invitation-signed'])assert.equal((await s.call(url,{session:tenantCookie})).status,403);
+  assert.equal((await s.call('/api/lease-preparations',{session:''})).status,401);
+  assert.equal((await s.post('/api/leases',{tenantId:tenant.id,propertyId:s.property.id,startsOn:'2099-01-15',endsOn:'2100-01-14',monthlyRent:1650,deposit:0,notes:'',applicantOfferId:first.invitation.id})).status,409);
+  const current=(await s.detail()).preparation;
+  const assigned=(await s.json(await s.post(s.path+'/send',{revision:current.revision,confirm:true,delivery:'account',tenantId:tenant.id}))).preparation;
+  assert.ok(assigned.lease_id);assert.equal((await s.json(await s.call('/api/leases'))).leases.length,1);
+  const thirdBytes=await uploadedPdf('Third applicant original agreement after home assignment');
+  const thirdApplicant=await uploadedApplicant(s,'Third Resident','third@example.test',thirdBytes),third=await inviteUploaded(s,thirdApplicant);
+  assert.equal((await s.json(await s.guest('open',{token:token(third)}))).agreement.canSign,true);
+  assert.equal((await signInvitation(s,third,'Third Resident','third@example.test')).status,200);
+  for(const path of ['/api/leases','/api/signatures']){const own=await s.json(await s.call(path,{session:tenantCookie}));assert.doesNotMatch(JSON.stringify(own),/Other Resident|Third Resident|other@example.test|third@example.test/);}
+  assert.equal((await s.post(secondApplicant.path+'/upload',{revision:secondApplicant.preparation.revision,name:'replacement.pdf',data:thirdBytes.toString('base64')})).status,409);
+  for(const session of [undefined,s.agentCookie]){
+   const {preparations}=await s.json(await s.call('/api/lease-preparations',{session}));assert.equal(preparations.length,3);assert.ok(preparations.every(row=>row.invitation.status==='Signed'));
+  }
+  await s.app.stop();s.app.base=await s.app.start();
+  for(const [path,original]of [[s.path,firstBytes],[secondApplicant.path,secondBytes],[thirdApplicant.path,thirdBytes]]){
+   const detail=await s.json(await s.call(path));assert.equal(detail.preparation.invitation.status,'Signed');
+   assert.deepEqual(Buffer.from(await(await s.call(path+'/invitation-original')).arrayBuffer()),original);
+   assert.ok((await PDFDocument.load(await(await s.call(path+'/invitation-signed')).arrayBuffer())).getPageCount()>1);
+  }
+  const own=(await s.json(await s.guest('open',{token:firstToken,applicationId:secondApplicant.application.id}))).agreement;assert.equal(own.tenantName,'Future Resident');assert.ok(!JSON.stringify(own).includes('Other Resident'));
+ }finally{await s.app.cleanup();}
+});
+test('different applicants can sign concurrently for one address while duplicate signatures on the same invitation are still rejected',async()=>{
+ const s=await setup();try{
+  await s.save();const first=await s.send(),other=await uploadedApplicant(s,'Concurrent Resident','concurrent@example.test',await uploadedPdf('Concurrent applicant private agreement')),second=await inviteUploaded(s,other);
+  const responses=await Promise.all([signInvitation(s,first,'Future Resident','future-resident@example.test'),signInvitation(s,second,other.name,other.email)]);
+  assert.deepEqual(responses.map(r=>r.status),[200,200]);
+  const {preparations}=await s.json(await s.call('/api/lease-preparations'));assert.equal(preparations.filter(p=>p.invitation.status==='Signed').length,2);
+  assert.equal((await s.json(await s.call('/api/leases'))).leases.length,0);
+  assert.equal((await signInvitation(s,first,'Future Resident','future-resident@example.test')).status,409);
+  assert.equal((await s.guest('signed',{token:token(first)})).status,200);assert.equal((await s.guest('signed',{token:token(second)})).status,200);
  }finally{await s.app.cleanup();}
 });
 test('all 50 states and DC have separate editable templates; jurisdiction changes and missing state review block generated sends',async()=>{
