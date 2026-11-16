@@ -21,6 +21,43 @@ async function uploadedApplicant(s,name,email,bytes){
 async function uploadedPdf(label){const pdf=await PDFDocument.create();pdf.addPage().drawText(label);return Buffer.from(await pdf.save());}
 async function inviteUploaded(s,applicant){return (await s.json(await s.post(applicant.path+'/send',{revision:applicant.preparation.revision,confirm:true,delivery:'applicant'},s.agentCookie))).preparation;}
 async function signInvitation(s,sent,name,email){const link=token(sent),opened=(await s.json(await s.guest('open',{token:link}))).agreement;return s.guest('sign',{token:link,name,email,documentHash:opened.documentHash,consent:true,reviewed:true});}
+test('first invitation opens alert active staff once, stay private to staff, and preserve per-user read state across repeat opens and replacement links',async()=>{
+ const s=await setup();try{
+  const {user:tenant}=await s.json(await s.post('/api/admin/users',{name:'Notification Resident',email:'notice-resident@example.test',password:s.app.credentials.password,role:'tenant'}));
+  const login=await s.post('/api/login',{email:tenant.email,password:s.app.credentials.password},''),tenantCookie=login.headers.get('set-cookie').split(';')[0];
+  await s.save();const sent=await s.send(),link=token(sent);
+  const views=async session=>(await s.json(await s.call('/api/notifications',{session}))).notifications.filter(n=>n.kind==='lease-view');
+  assert.equal((await views()).length,0);assert.equal((await s.guest('open',{token:'a'.repeat(64)})).status,404);
+  await s.call(s.path+'/preview');await s.call(s.path+'/invitation-original');assert.equal((await views()).length,0);
+  const responses=await Promise.all([s.guest('open',{token:link}),s.guest('open',{token:link}),s.guest('open',{token:link})]);assert.ok(responses.every(r=>r.status===200));
+  const admin=await views(),agent=await views(s.agentCookie);assert.equal(admin.length,1);assert.equal(agent.length,1);
+  for(const notice of [...admin,...agent]){assert.equal(notice.title,'Lease invitation opened');assert.match(notice.body,/Future Resident/);assert.ok(notice.body.includes(s.property.address));assert.ok(notice.link.includes('leaseApplication='+s.application.id));assert.ok(notice.link.endsWith('#leases'));assert.equal(notice.read_at,null);assert.ok(!JSON.stringify(notice).includes(link));}
+  assert.deepEqual(await views(tenantCookie),[]);assert.equal((await s.call('/api/notifications',{session:''})).status,401);
+  assert.equal((await s.post('/api/notifications/'+admin[0].id+'/read',{},tenantCookie)).status,404);
+  await s.json(await s.post('/api/notifications/'+admin[0].id+'/read'));assert.ok((await views())[0].read_at);assert.equal((await views(s.agentCookie))[0].read_at,null);
+  const viewedAt=(await s.detail()).preparation.invitation.viewedAt;await s.guest('open',{token:link});assert.equal((await views()).length,1);assert.ok((await views())[0].read_at);assert.equal((await s.detail()).preparation.invitation.viewedAt,viewedAt);
+  const invitation=(await s.detail()).preparation.invitation,rotated=await s.json(await s.post(s.path+'/invitation-link',{offerId:invitation.id,expectedUpdatedAt:invitation.updatedAt,confirm:true}));
+  assert.equal((await s.guest('open',{token:link})).status,404);await s.json(await s.guest('open',{token:token(rotated)}));assert.equal((await views()).length,1);
+  const current=(await s.detail()).preparation.invitation;await s.json(await s.post(s.path+'/withdraw-invitation',{offerId:current.id,expectedUpdatedAt:current.updatedAt,confirm:true,reason:'Prepare another applicant-specific agreement'}));
+  await s.save();const next=await s.send();await s.json(await s.guest('open',{token:token(next)}));assert.equal((await views()).length,2);assert.equal((await views()).filter(n=>!n.read_at).length,1);
+  await s.app.stop();s.app.base=await s.app.start();assert.equal((await views()).length,2);assert.equal((await views(s.agentCookie)).filter(n=>!n.read_at).length,2);
+  const db=s.db();try{db.prepare("UPDATE users SET role='tenant' WHERE email='leasing@example.test'").run();}finally{db.close();}
+  assert.deepEqual(await views(s.agentCookie),[]);assert.equal((await s.post('/api/notifications/'+agent[0].id+'/read',{},s.agentCookie)).status,404);assert.equal((await views()).length,2);
+ }finally{await s.app.cleanup();}
+});
+test('a first-open notification is atomic with the view record and dashboard alerts never queue an email',async()=>{
+ const s=await setup();try{
+  await s.save();const sent=await s.send(),link=token(sent),connection=s.db();
+  try{connection.exec("CREATE TRIGGER fail_lease_view_notice_for_test BEFORE INSERT ON notifications WHEN NEW.kind='lease-view' BEGIN SELECT RAISE(ABORT,'isolated notification failure'); END;");}finally{connection.close();}
+  assert.equal((await s.guest('open',{token:link})).status,500);assert.equal((await s.detail()).preparation.invitation.viewedAt,null);
+  const check=s.db();try{assert.equal(check.prepare("SELECT COUNT(*) AS n FROM notifications WHERE kind='lease-view'").get().n,0);check.exec('DROP TRIGGER fail_lease_view_notice_for_test');}finally{check.close();}
+  await s.app.stop();const db=s.db();try{
+   db.prepare("UPDATE users SET email_verified_at=?,email_notifications=1 WHERE role IN ('admin','agent')").run(new Date().toISOString());
+   const {createNotifications}=require('../lib/notifications'),{createApplicantLeases}=require('../lib/applicant-leases'),notices=createNotifications(db,{sendMail:async()=>{throw Error('Dashboard alerts must not send email');}}),offers=createApplicantLeases(db,notices),before=db.prepare('SELECT COUNT(*) AS n FROM email_outbox').get().n;
+   offers.open({token:link},{socket:{remoteAddress:'127.0.0.1'}});assert.equal(db.prepare("SELECT COUNT(*) AS n FROM notifications WHERE kind='lease-view'").get().n,2);assert.equal(db.prepare('SELECT COUNT(*) AS n FROM email_outbox').get().n,before);
+  }finally{db.close();}
+ }finally{await s.app.cleanup();}
+});
 test('the supplied lease becomes a private editable 61-clause template and account-free invitations neither create accounts nor activate leases',async()=>{
  const s=await setup();try{
   const {preparation:p,sourceTemplate}=await s.detail();assert.equal(p.values.tenantId,null);for(let n=1;n<=61;n++)assert.match(sourceTemplate.body,new RegExp('(?:^|\\n\\n)'+n+'\\.'));assert.equal(p.values.terms,company.body);assert.doesNotMatch(company.body,/GRICELDA|LETA STEVENS|BRANDON HALEY|424 N Palm|765.543|619.967|December 15th|2,500/);assert.match(company.body,/Megan's Law/);assert.match(company.body,/Lead Warning/);

@@ -1,0 +1,8 @@
+.dashboard-page .lease-view-alerts{margin:0 0 24px;padding:22px;border:1px solid var(--line);border-left:4px solid var(--green);border-radius:18px;background:var(--card);color:var(--ink)}
+.dashboard-page .lease-view-alerts h2{font-size:20px;line-height:1.5;margin:8px 0}
+.dashboard-page .lease-view-alert-row{padding:16px 0;margin:0;border:0;border-top:1px solid var(--line);background:transparent;overflow-wrap:anywhere}
+.dashboard-page .lease-view-alert-row strong{font-size:14px;line-height:1.6;color:var(--ink)}
+.dashboard-page .lease-view-alert-row p{font-size:13px;line-height:1.75;color:var(--ink);margin:8px 0}
+.dashboard-page .lease-view-alert-row time{font-size:12px;line-height:1.7;color:var(--dashboard-muted)}
+.dashboard-page .lease-view-alert-actions{display:flex;flex-wrap:wrap;gap:18px;margin-top:10px}
+.dashboard-page .lease-view-alert-actions .text-link{font-size:12px;line-height:1.6}
