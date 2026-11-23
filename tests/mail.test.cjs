@@ -7,6 +7,15 @@ const {createNotifications}=require('../lib/notifications'),{createAccountServic
 const {createMailer,smtpSettings}=require('../lib/mailer');
 const {rentalApplication}=require('./rental-fixtures.cjs');
 const {fixture}=require('./fixture.cjs');
+test('Spacemail identifies domain email without inheriting Gmail credential restrictions',async()=>{
+ const env={SMTP_ENABLED:'true',SMTP_HOST:'mail.spacemail.com',SMTP_PORT:'465',SMTP_SECURITY:'tls',SMTP_USER:'Screening@company.example',SMTP_FROM:'notices@company.example',SMTP_PASSWORD:'Synthetic domain mailbox password'},options=[],messages=[];
+ const mailer=createMailer({settingsSource:()=>({env,source:'dashboard',revision:1}),transportFactory:config=>{options.push(config);return {verify:async()=>true,sendMail:async message=>{messages.push(message);return {messageId:'synthetic-domain-mail'};}};}});
+ try{
+  assert.equal(mailer.status().provider,'Spacemail SMTP');assert.equal(mailer.configured(),true);await mailer.verify();assert.equal(messages.length,0);
+  assert.equal(options[0].host,'mail.spacemail.com');assert.equal(options[0].port,465);assert.equal(options[0].secure,true);assert.equal(options[0].tls.servername,'mail.spacemail.com');assert.equal(options[0].tls.rejectUnauthorized,true);assert.equal(options[0].auth.user,env.SMTP_USER);assert.equal(options[0].auth.pass,env.SMTP_PASSWORD);assert.ok(!JSON.stringify(mailer.status()).includes(env.SMTP_PASSWORD));
+  await mailer.send({to:'recipient@example.test',subject:'Synthetic notification',text:'Synthetic body',key:'domain-preset-test'});assert.equal(messages[0].from.address,env.SMTP_FROM);assert.match(messages[0].from.name,/No Reply/);assert.equal(messages[0].envelope.from,env.SMTP_FROM);
+ }finally{mailer.close();}
+});
 const req=()=>({headers:{'user-agent':'Synthetic browser'},socket:{remoteAddress:'127.0.0.1'}});
 async function unit(){
  const values={SMTP_ENABLED:'true',SMTP_HOST:'smtp.mail.com',SMTP_PORT:'465',SMTP_USER:'company@example.test',SMTP_FROM:'company@example.test',SMTP_PASSWORD:'synthetic-mailbox-password-not-real',PUBLIC_APP_URL:'https://ctpm.example.test'},previous={};for(const[k,v]of Object.entries(values)){previous[k]=process.env[k];process.env[k]=v;}

@@ -1,6 +1,6 @@
 ## Configure from the administrator dashboard
 
-Administrators can manage SMTP in **Dashboard → Built-in services**. Choose **Custom SMTP server** for any public provider that supports password/token-based SMTP login, or use the Gmail/mail.com presets. Enter its hostname, port, TLS mode, username, SMTP password and authorized sender address. Custom usernames retain their case and can differ from the sender address. Save a provider/mailbox/password with delivery paused, check the saved connection, or confirm **Check & enable automatic email**. These actions require the current administrator password. The saved mailbox password stays masked and is never returned. Gmail still needs a Google app password; the dashboard cannot create one for the Google account.
+Administrators can manage SMTP in **Dashboard → Service connections → Administrator email settings**. Choose **Custom SMTP server** for any public provider that supports password/token-based SMTP login, or use the Spacemail, Gmail or mail.com presets. Enter its hostname, port, TLS mode, username, SMTP password and authorized sender address. Custom usernames retain their case and can differ from the sender address. Save a provider/mailbox/password with delivery paused, check the saved connection, or confirm **Check & enable automatic email**. These actions require the current administrator password. The saved mailbox password stays masked and is never returned. Switching presets clears an unsaved mailbox password and the delivery confirmation. Gmail still needs a Google app password; the dashboard cannot create one for the Google account.
 
 The override is encrypted in SQLite with a separate `.smtp-key` on the persistent disk. Back up that key separately from SQLite backups. Existing hosting variables continue to apply until an override is saved, and the administrator can explicitly return to them. See [the handover guide](HANDOVER.md#smtp-settings-in-the-administrator-dashboard) for recovery, key storage, live changes and the `EMAIL_DELIVERY_DISABLED=true` staging lock.
 
@@ -21,11 +21,32 @@ These variables apply when the SMTP form shows **Hosting settings**. A saved das
 | `SMTP_USER` | Provider SMTP username; Gmail/mail.com use the complete sender mailbox address |
 | `SMTP_FROM` | Provider-authorized sender address; Gmail/mail.com require the same mailbox as the login |
 | `SMTP_PASSWORD` | Provider SMTP password/token; Gmail requires a Google app password; enter privately in Render |
-| `PUBLIC_APP_URL` | `https://ctpm.onrender.com`; Render's service URL is a fallback |
+| `PUBLIC_APP_URL` | `https://ctpm.online`; Render's service URL is a fallback |
 
 Keep `ALLOW_PAID_INTEGRATIONS` unset or `false`. SMTP does not require that legacy flag and never activates Stripe or Resend. When SMTP is selected but incomplete, the app does not fall back to another provider. Never place a mailbox password in source control, chat, Management settings, or public agent profiles. Follow the provider setup below. Custom public SMTP hosts and provider ports are accepted with mandatory TLS or STARTTLS; private-network destinations are refused. Network reachability, port restrictions, sender verification and quotas depend on your provider and Render. OAuth-only or unauthenticated relays are not supported by this password-based form.
 
 For custom SMTP, use your provider’s exact login username and an authorized From address; the username may be a token rather than an email address. For the Gmail and mail.com presets, use the same authorized mailbox as both login and sender. A dedicated company mailbox is recommended; the owner may instead choose a personal mailbox as both values. That choice makes the personal address visible to recipients. Sender display name is **Come Together Property Management (No Reply)**. The selected address remains visible in From, envelope, and message headers. TLS encrypts the SMTP connection; it does not hide sender identity or provide end-to-end message encryption. Mailbox addresses and passwords are configured privately in Render, rather than embedded in source.
+
+## Existing Spacemail mailbox on ctpm.online
+
+The domain's MX records point to Spacemail. That supports using an existing, active Spacemail mailbox; owning the domain and having MX records do not create a mailbox or prove its password works. The owner selected **screening@ctpm.online** for automated email. No new subscription or mailbox has been purchased or created by this app.
+
+In the administrator SMTP form, select **Spacemail · email on your domain** and enter:
+
+| Field | Value |
+|---|---|
+| SMTP server hostname | `mail.spacemail.com` |
+| Port | `465` |
+| Encrypted connection | `TLS` |
+| SMTP login username | `screening@ctpm.online` |
+| Sender mailbox | `screening@ctpm.online`, if authorized by that mailbox |
+| New SMTP password | The existing Spacemail mailbox password, entered privately in Admin |
+
+These are the settings in [Spacemail's official email-client guide](https://www.spaceship.com/knowledgebase/connect-spacemail-to-email-client). The provider calls encryption on port 465 “SSL”; choose **TLS** in this app. Check the mailbox's own **IMAP/SMTP/POP3 → See configuration** in Spacemail for any account-specific settings and confirm SMTP access is enabled.
+
+Save with delivery paused, then use **Check saved connection** with your administrator password. This checks TLS/login and sends no email. Enable automatic email only after reviewing its pending-message confirmation. A successful login is not proof that a recipient inbox accepted a message. The sender address remains visible to recipients under the existing **No Reply** display name; it is not encrypted out of message headers.
+
+The website hostname `ctpm.online` is not the Spacemail SMTP hostname. Website HTTPS on Render and mailbox SMTP on Spacemail are separate services. Keep the existing MX, SPF and DKIM records when changing website DNS. The public DNS check on November 23, 2026 found one SPF record: `v=spf1 include:spf.spacemail.com ~all`. Recheck current records before editing; do not add a second SPF record. Spacemail may have subscription costs under the owner's existing plan; the app does not buy or upgrade it.
 
 ## Personal Gmail setup (no paid subscription)
 
