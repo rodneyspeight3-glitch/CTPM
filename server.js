@@ -204,7 +204,7 @@ async function main(){
    if(!file.startsWith(root+path.sep))return json(res,403,{error:'Forbidden.'});
    fs.readFile(file,(error,data)=>{
     if(error)return json(res,404,{error:'Not found.'});
-    res.setHeader('Content-Type',({'.html':'text/html; charset=utf-8','.css':'text/css','.js':'text/javascript','.webmanifest':'application/manifest+json','.svg':'image/svg+xml','.jpg':'image/jpeg','.png':'image/png'})[path.extname(file)]||'application/octet-stream');
+    res.setHeader('Content-Type',({'.html':'text/html; charset=utf-8','.css':'text/css','.js':'text/javascript','.webmanifest':'application/manifest+json','.svg':'image/svg+xml','.jpg':'image/jpeg','.png':'image/png','.woff':'font/woff'})[path.extname(file)]||'application/octet-stream');
     res.setHeader('Cache-Control',path.extname(file)==='.html'?'no-store':'public, max-age=300');
     res.end(req.method==='HEAD'?undefined:data);
    });

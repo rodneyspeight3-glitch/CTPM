@@ -21,6 +21,8 @@ The [prioritized 500-feature roadmap](docs/ROADMAP-500.md), also available as a 
 
 The primary production address is **https://ctpm.online**. The `www` address redirects there; the existing Render address remains available for older private links. See [domain and HTTPS troubleshooting](docs/DOMAIN.md) for current checks and what to collect if a browser reports an SSL warning.
 
+The shared visual design uses warm ivory, deep green, champagne accents, locally served variable fonts, and consistent public, application, account and staff layouts. The design retains visitor-local day/night, alternate palettes, readable headings, contrast, large text, touch targets, compact density, reduced motion and print styles. The architectural background and agent animations remain available. [Font sources and licenses](public/fonts/README.md) are included; no paid design service or external font request is required.
+
 ## Main workflows
 
 - **Public:** `/`, `/vacancies`, `/agents`, `/apply`, and `/application-status`. Available verified properties accept applications. Open applications accept an address before a property exists in the portfolio. Private receipt links support status tracking without email.
