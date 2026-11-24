@@ -21,7 +21,7 @@ The [prioritized 500-feature roadmap](docs/ROADMAP-500.md), also available as a 
 
 The primary production address is **https://ctpm.online**. The `www` address redirects there; the existing Render address remains available for older private links. See [domain and HTTPS troubleshooting](docs/DOMAIN.md) for current checks and what to collect if a browser reports an SSL warning.
 
-The shared visual design uses warm ivory, charcoal, restrained slate and champagne accents, locally served variable fonts, and consistent public, application, account and staff layouts. The design retains visitor-local day/night, alternate palettes, readable headings, contrast, large text, touch targets, compact density, reduced motion and print styles. The architectural background and agent animations remain available. [Font sources and licenses](public/fonts/README.md) are included; no paid design service or external font request is required.
+The shared visual design uses warm ivory, charcoal, peach, blush and soft plum accents, locally served variable fonts, and consistent public, application, account and staff layouts. The design retains visitor-local day/night, alternate palettes, readable headings, contrast, large text, touch targets, compact density, reduced motion and print styles. The architectural background and agent animations remain available. [Font sources and licenses](public/fonts/README.md) are included; no paid design service or external font request is required.
 
 ## Main workflows
 
@@ -87,3 +87,5 @@ The six existing showcase homes remain staff-manageable and do not regenerate af
 Protect the database and backups: they contain account hashes, identity documents, private photos, signed agreements, messages, and financial records. Apply the owner's retention policy; the app never automatically deletes application documents based on age. The handover page flags records for review.
 
 The home page presents current vacancies and the direct-address application first, then application guidance, resident services, the team, the illustrative collection, FAQs, and contact. Mobile navigation and property filters remain visible; the illustrative collection scrolls horizontally on phones to keep the page focused.
+
+Administrators can schedule [one-time lease-signature reminders](docs/LEASE-REMINDERS.md) through the protected reminder endpoint. The outbox persists the due time, groups duplicate recipient mailboxes and rechecks pending signatures before delivery. Scheduling does not replace private invitation links or change recipient preferences.

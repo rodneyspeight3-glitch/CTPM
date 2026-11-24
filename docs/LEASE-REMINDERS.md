@@ -1,0 +1,15 @@
+# One-time lease-signature reminders
+
+An administrator can schedule a fixed, friendly email reminder for the currently eligible pending lease signatures. This is an explicitly requested batch, not a recurring campaign. The authenticated endpoint is `GET/POST /api/admin/smtp-settings/lease-reminders`; the send requires the current administrator password, the current SMTP-settings revision, explicit confirmation, an audience hash from the preview, a UUID request reference, and an ISO scheduled time labelled `America/Los_Angeles`.
+
+The preview combines current applicant invitations and tenant-account signature requests. Applicant invitations must be current, pending, approved, unexpired, unrevoked and associated with a real, unarchived property. Availability or another applicant signing for the same address does not exclude an otherwise valid pending invitation. Tenant-account requests must remain pending on an active lease for an active tenant with verified email and email notifications enabled. Recipient email and document version must still match at delivery.
+
+Recipients are grouped by email, so several pending agreements for one mailbox produce one reminder in the batch. A repeated request reference returns the existing schedule instead of creating another mailing. A changed preview is rejected for refresh. Batches are limited to 250 eligible agreements and three schedules per administrator per hour.
+
+The email asks the recipient to review and sign, explains how to use their existing private invitation or their account's Lease signing page, and directs questions to the public management contact page. It does not create or replace private invitation links, attach lease PDFs, state an invented signing deadline, expose other applicants, or change application-update preferences. It uses the configured No Reply sender and the normal SMTP outbox.
+
+The UTC `available_at` timestamp is persisted in SQLite. The normal worker begins processing at that instant and applies existing delivery quotas, retries, sender pauses and locks. It rechecks each pending agreement, recipient, document and administrator authority immediately before sending. If every agreement for a recipient has become ineligible, that message is cancelled. The delivery window expires six hours after the scheduled time. SMTP acceptance does not confirm inbox delivery, and an in-flight email cannot be recalled.
+
+`GET /api/admin/smtp-settings/lease-reminders/{requestId}` reports the scheduled time, California timezone, original agreement/recipient counts and delivery states. `POST .../{requestId}/cancel`, with current administrator password, SMTP revision and explicit confirmation, cancels unsent pending/failed messages. Sent history remains. A timestamp should be calculated using the IANA `America/Los_Angeles` timezone so daylight-saving rules apply; California 8:00 a.m. on November 24, 2026 is `2026-11-24T16:00:00Z`.
+
+The mechanism uses the existing Render instance, persistent SQLite database and SMTP mailbox. No external scheduler, additional service or paid add-on is created.

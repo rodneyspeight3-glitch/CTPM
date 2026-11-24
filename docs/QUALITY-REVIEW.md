@@ -4,7 +4,7 @@ The redesign applies to the public home, vacancy and agent pages, sign-in/signup
 
 ## Design changes
 
-Warm ivory and charcoal surfaces, restrained slate and champagne accents, locally served variable fonts, clearer form boundaries, a light neutral navigation rail with a charcoal night variant, consistent cards and buttons, and a more spacious editorial hierarchy replace the competing visual styles. Alternate palettes, visitor-local day/night, reduced motion, reading settings, print layouts, the moving architectural background and agent illustrations remain available. Staff hero navigation now says **View properties**.
+Warm ivory and charcoal surfaces, peach, blush and soft plum accents, locally served variable fonts, clearer form boundaries, a light neutral navigation rail with a charcoal night variant, consistent cards and buttons, and a more spacious editorial hierarchy replace the competing visual styles. Alternate palettes, visitor-local day/night, reduced motion, reading settings, print layouts, the moving architectural background and agent illustrations remain available. Staff hero navigation now says **View properties**.
 
 The visual sweep corrected sidebar/brand contrast, public footer contacts, application progress and file labels, dark-mode section markers, public help controls, dark display-settings panels, sign-in placeholders and empty-dashboard guidance. Photo/hero overlays were also inspected visually. Fonts and their licenses are bundled locally; no third-party font requests or paid add-ons are introduced.
 
@@ -12,7 +12,7 @@ The visual sweep corrected sidebar/brand contrast, public footer contacts, appli
 
 | Area | Coverage |
 |---|---|
-| Server/API | 94 existing and recent regression tests, using isolated SQLite databases |
+| Server/API | 100 existing and recent regression tests, using isolated SQLite databases |
 | Identity and permissions | Shared login/signup, all three roles, resident isolation, staff/admin-only APIs, private records and links |
 | Property operations | Creation/editing, photographs, availability, assignments, galleries, archive/restore and deletion constraints |
 | Applications | Listed/open-address intake, required and optional fields, private uploads, receipts, reviews, approval/rejection and combined PDF export |
