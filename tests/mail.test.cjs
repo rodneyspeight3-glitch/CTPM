@@ -37,6 +37,32 @@ test('mail.com uses encrypted authenticated SMTP and a dedicated company sender 
   process.env.SMTP_PORT='465';process.env.SMTP_USER='private-login@example.test';assert.equal(u.mailer.configured(),false);assert.match(smtpSettings().problem,/same authorized mailbox/);process.env.SMTP_USER='company@example.test';process.env.SMTP_FROM='';assert.equal(u.mailer.configured(),false);process.env.SMTP_FROM='company@example.test';process.env.SMTP_ENABLED='false';assert.equal(u.mailer.configured(),false);
  }finally{u.cleanup();}
 });
+test('administrator test email uses the saved sender and normal outbox, deduplicates requests and reports provider acceptance',async()=>{
+ const u=await unit();try{
+  const input={requestId:require('node:crypto').randomUUID(),recipient:'Recipient@example.test',confirmSend:true};
+  const queued=u.notices.queueSmtpTest(u.admin,input);assert.equal(queued.status,'Pending');assert.equal(queued.recipient,'recipient@example.test');assert.equal(u.messages.length,0);
+  assert.equal(u.notices.queueSmtpTest(u.admin,input).status,'Pending');assert.equal(u.db.prepare("SELECT COUNT(*) AS n FROM email_outbox WHERE kind='smtp-test'").get().n,1);
+  assert.throws(()=>u.notices.queueSmtpTest(u.admin,{...input,recipient:'other@example.test'}),e=>e.status===409);
+  const other=await u.auth.addUser({name:'Other Admin',email:'other-admin@example.test',role:'admin',password:u.password});assert.throws(()=>u.notices.smtpTestStatus(other,input.requestId),e=>e.status===404);
+  await u.notices.drain();const status=u.notices.smtpTestStatus(u.admin,input.requestId);assert.equal(status.status,'Sent');assert.ok(status.sentAt);assert.equal(u.messages.length,1);assert.equal(u.messages[0].payload.from.address,'company@example.test');assert.match(u.messages[0].payload.subject,/test email/);assert.match(u.messages[0].payload.text,/plain-text test email/);assert.match(u.messages[0].payload.text,/No Reply|Please do not reply/);assert.equal(u.messages[0].payload.to.address,'recipient@example.test');
+  process.env.SMTP_ENABLED='false';assert.equal(u.notices.queueSmtpTest(u.admin,input).status,'Sent');await u.notices.drain();assert.equal(u.messages.length,1);assert.equal(u.db.prepare("SELECT body FROM email_outbox WHERE kind='smtp-test'").get().body,'');
+ }finally{u.cleanup();}
+});
+test('test email requires explicit bounded input, honors paused delivery and expires without sending',async()=>{
+ const u=await unit();try{
+  const input={requestId:require('node:crypto').randomUUID(),recipient:'recipient@example.test',confirmSend:true};
+  for(const change of [{confirmSend:false},{recipient:'a@example.test,b@example.test'},{recipient:'bad'},{requestId:'invalid'}])assert.throws(()=>u.notices.queueSmtpTest(u.admin,{...input,...change}),e=>e.status===400);
+  assert.throws(()=>u.notices.queueSmtpTest({id:u.admin.id,role:'agent'},input),e=>e.status===403);
+  process.env.SMTP_ENABLED='false';assert.throws(()=>u.notices.queueSmtpTest(u.admin,input),e=>e.status===503);assert.equal(u.db.prepare('SELECT COUNT(*) AS n FROM email_outbox').get().n,0);process.env.SMTP_ENABLED='true';
+  u.notices.queueSmtpTest(u.admin,input);u.db.prepare("UPDATE email_outbox SET expires_at=? WHERE kind='smtp-test'").run(Date.now()-1);assert.equal(u.notices.smtpTestStatus(u.admin,input.requestId).status,'Expired');await u.notices.drain();assert.equal(u.messages.length,0);assert.equal(u.notices.smtpTestStatus(u.admin,input.requestId).status,'Cancelled');
+  for(let i=0;i<2;i++)u.notices.queueSmtpTest(u.admin,{...input,requestId:require('node:crypto').randomUUID()});assert.throws(()=>u.notices.queueSmtpTest(u.admin,{...input,requestId:require('node:crypto').randomUUID()}),e=>e.status===429);
+ }finally{u.cleanup();}
+});
+test('test email reports sanitized provider failures instead of claiming delivery',async()=>{
+ const u=await unit();try{
+  const input={requestId:require('node:crypto').randomUUID(),recipient:'recipient@example.test',confirmSend:true};u.notices.queueSmtpTest(u.admin,input);u.state.error=Object.assign(Error('sensitive provider detail'),{code:'EAUTH'});await u.notices.drain();const result=u.notices.smtpTestStatus(u.admin,input.requestId);assert.equal(result.status,'Failed');assert.equal(result.error,'AUTHENTICATION_FAILED');assert.equal(result.sentAt,null);assert.equal(u.messages.length,0);assert.ok(!JSON.stringify(result).includes('sensitive provider detail'));
+ }finally{u.cleanup();}
+});
 test('signup produces a durable in-app welcome and a one-use welcome/verification email without passwords',async()=>{
  const u=await unit();try{
   const created=await u.auth.signup({name:'New Resident',email:'resident@example.test',password:u.password,confirmation:u.password,consent:true},req());u.accounts.welcome(created.user);u.accounts.welcome(created.user);u.accounts.requestVerification(created.user,req(),{welcome:true});

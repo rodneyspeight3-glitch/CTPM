@@ -70,6 +70,8 @@ Do not enable legacy providers without separately verifying delivery and the ful
 
 New signup creates an in-app welcome and, when configured, a welcome/verification email. Opted-in applicants receive a private receipt, actual status changes, and generic document-request emails, with unsubscribe controls. All automated email is marked No Reply, with portal/contact help links and automatic-response suppression. The authorized sender address is retained; no unregistered no-reply alias is invented. Queue retries and suppression preserve private records. Admin service connections shows configuration status and an SMTP connection check. Gmail uses 2-Step Verification and a Google app password, with a 400-email rolling daily app budget. mail.com requires Premium; the app does not purchase or upgrade an account.
 
+Administrators can also **Send a plain-text test email** from the saved SMTP settings. It requires the current administrator password and explicit recipient confirmation, uses the normal outbox, and reports provider acceptance separately from inbox delivery. It does not enable paused delivery or alter credentials. Duplicate request references do not create duplicate queue entries; tests are rate-limited and expire after 15 minutes.
+
 The white page background now uses locally served real-building photography in a continuous left-to-right loop, with aligned repeating tiles, pause controls, and reduced-motion support. Hero photos remain unchanged. [Asset source and license](docs/SMTP.md#background-photography).
 
 ## Data and deployment
