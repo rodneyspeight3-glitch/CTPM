@@ -7,3 +7,5 @@ Use previous/next, dots, Left/Right/Home/End keys, or a horizontal touch swipe. 
 Existing gallery ordering, cover replacement, uploads, availability rules and photo permissions remain authoritative. No sample records, generated property photographs, external image libraries or paid services are added. Gallery changes refresh card slides. Preview and unavailable/private photos retain the existing access checks; assigned tenants retain their existing access.
 
 The visual refresh uses coral, berry, warm gold and lilac over light reading surfaces, with matching night colors. Alternative palettes, visitor timezone-based day/night behavior, high contrast, reading settings, reduced motion, and the existing moving building background remain available.
+
+Photo downloads use random app-generated filenames. Gallery descriptions supplied by staff remain editable; old labels without a review marker are replaced in public and staff DTOs by an automatic photo label until reviewed. This prevents earlier filename-based captions appearing in the viewer. See [PHOTO-NAMES.md](PHOTO-NAMES.md).

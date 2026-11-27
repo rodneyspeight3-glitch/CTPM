@@ -1,0 +1,11 @@
+# App-generated picture names
+
+Property cover pictures, gallery pictures and agent portraits receive a random filename such as `ctpm-photo-<32 hexadecimal characters>.jpg` (or `.png`). Names use Node's cryptographic random generator, are stored with the picture, survive restarts and are supplied as an inline download filename in the image response. Replacing a picture assigns a fresh name. Promoting a gallery image to the cover preserves that image's generated name.
+
+Original upload names are no longer turned into captions by the property editor. A photo description is optional. Blank descriptions display an automatic short label; staff can add a meaningful description in **Properties → Gallery & video → Photo description** or clear it to restore the automatic label. Inputs that look like image filenames are rejected as descriptions.
+
+On upgrade, existing image bytes and property/agent associations are retained. Empty name fields are backfilled once. Existing gallery captions have no source-review marker, so they are withheld from both public and staff media responses until replaced by an explicitly saved description. Their existing database values remain available for internal recovery; API responses and gallery markup omit those unreviewed values. Staff can review and replace them without uploading the picture again. New explicitly supplied descriptions are marked reviewed.
+
+This changes names and presentation, not image encryption or access rules. Public listing photos remain public. Unavailable and private-property images retain the existing role/lease checks, and responses remain `private, no-store`. Numeric image routes remain stable for existing pages; filenames in response headers are opaque. Private application/lease documents and their download flows are unchanged.
+
+Verification: `tests/photo-names.test.cjs` covers generation, legacy migrations, byte preservation, persistence, headers, description review/clearing, roles and private access. Existing service, handover and slideshow tests remain in the release suite. The handover browser test checks that original upload names never populate the description fields and that a reviewed description saves through the gallery manager.

@@ -154,3 +154,5 @@ Tenant dashboards focus on the resident’s own active lease homes, maintenance,
 ## Living studio and expansion inventory
 
 `/studio` adds an optional measured room sketch, printable packing labels, 24 home inspiration cards and a focus/break timer. Find it on the public home page or Dashboard → Resources. These free, device-local tools do not alter account or property records. See [LIVING-STUDIO.md](LIVING-STUDIO.md) for storage, export and measurement limits. [ROADMAP-1000.md](ROADMAP-1000.md) and its CSV are a prioritized candidate inventory; they do not represent 1,000 shipped features.
+
+Property and agent pictures now receive random app-generated download filenames. Existing unreviewed gallery labels are hidden; staff can replace them using Gallery & video → Photo description. Original upload names are no longer copied into new captions. See [PHOTO-NAMES.md](PHOTO-NAMES.md).

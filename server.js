@@ -73,7 +73,7 @@ async function main(){
    const user=auth.userFor(req);
    res.on('finish',()=>{if(req.method==='POST'&&res.statusCode>=200&&res.statusCode<300&&['admin','agent'].includes(user?.role)&&!/^\/api\/(login|logout|password|account\/)/.test(pathname)){try{handover.audit(user,'POST '+pathname);}catch{}}});
    const photoRead=pathname.match(/^\/property-photos\/(\d+)$/);
-   if(photoRead&&['GET','HEAD'].includes(req.method)){const photo=management.photo(user,photoRead[1]);res.writeHead(200,{'Content-Type':photo.mime,'Cache-Control':'private, no-store'});return res.end(req.method==='HEAD'?undefined:photo.data);}
+   if(photoRead&&['GET','HEAD'].includes(req.method)){const photo=management.photo(user,photoRead[1]);res.writeHead(200,{'Content-Type':photo.mime,'Cache-Control':'private, no-store','Content-Disposition':'inline; filename="'+photo.public_name+'"'});return res.end(req.method==='HEAD'?undefined:photo.data);}
    if(/^\/(agent-photos|gallery-photos)\/\d+$/.test(pathname)&&await services(req,res,requestURL,user))return;
    if(pathname.startsWith('/api/')){
     if(req.method==='POST'&&pathname!=='/api/webhooks/stripe'){
