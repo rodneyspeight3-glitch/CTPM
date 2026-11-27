@@ -150,3 +150,7 @@ In **Admin → Public agent profiles → Edit public profile & photo**, select t
 ## Resident dashboards
 
 Tenant dashboards focus on the resident’s own active lease homes, maintenance, rent and documents. Vacancy cards/counts, property browsing and saved-home pages are hidden, and direct dashboard links to those discovery pages return to the overview. Existing shortlist records are retained. The private property API returns only properties linked to that tenant’s active leases; staff retain their portfolio, and public vacancy browsing and open applications remain available.
+
+## Living studio and expansion inventory
+
+`/studio` adds an optional measured room sketch, printable packing labels, 24 home inspiration cards and a focus/break timer. Find it on the public home page or Dashboard → Resources. These free, device-local tools do not alter account or property records. See [LIVING-STUDIO.md](LIVING-STUDIO.md) for storage, export and measurement limits. [ROADMAP-1000.md](ROADMAP-1000.md) and its CSV are a prioritized candidate inventory; they do not represent 1,000 shipped features.
