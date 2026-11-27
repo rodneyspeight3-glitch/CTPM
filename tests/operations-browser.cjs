@@ -13,7 +13,7 @@ const {fixture}=require('./fixture.cjs');
   const login=async role=>{await page.goto(app.base+'/login');await page.locator('[name="email"]').fill(role+'@example.test');await page.locator('[name="password"]').fill(app.credentials.password);await page.locator('#sign-in').click();await page.locator('#account-name').filter({hasText:role==='admin'?'Company Administrator':'Test '+role}).waitFor({state:'attached'});};
   await login('agent');await page.locator('[data-page="homes"]').click();
   const main=()=>page.locator('#all-homes .property-card').filter({hasText:'Managed home'});
-  await main().getByRole('button',{name:'Edit property',exact:true}).click();await page.locator('#property-form [name="name"]').fill('Managed home updated');await page.locator('#property-form button').click();await page.locator('#all-homes h3').filter({hasText:'Managed home updated'}).waitFor();
+  await main().getByRole('button',{name:'Edit property',exact:true}).click();await page.locator('#property-form [name="name"]').fill('Managed home updated');await page.locator('#property-form [type=submit]').click();await page.locator('#all-homes h3').filter({hasText:'Managed home updated'}).waitFor();
   await main().getByRole('button',{name:'Change photo'}).click();
   const image=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=2;c.height=2;c.getContext('2d').fillRect(0,0,2,2);return c.toDataURL('image/png').split(',')[1];});
   await page.locator('#photo-form input').setInputFiles({name:'property.png',mimeType:'image/png',buffer:Buffer.from(image,'base64')});await page.locator('#photo-form button').click();

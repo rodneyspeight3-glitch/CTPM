@@ -199,7 +199,7 @@ async function main(){
    if(pathname==='/index.html')return redirect(res,user?'/dashboard':'/login');
    if(['/login','/login.html','/signup','/signup.html'].includes(pathname)&&user)return redirect(res,dashboardTarget(requestURL.searchParams.get('next')));
    if(pathname==='/signup'||pathname==='/signup.html'){const params=new URLSearchParams(requestURL.search);params.set('mode','signup');return redirect(res,'/login?'+params.toString());}
-   const relative=pathname==='/'||pathname==='/home'?'/home.html':pathname==='/dashboard'?'/index.html':pathname==='/login'?'/login.html':pathname==='/vacancies'?'/vacancies.html':pathname==='/agents'?'/agents.html':pathname==='/account-access'?'/account-access.html':pathname==='/apply'?'/apply.html':pathname==='/application-status'?'/application-status.html':pathname==='/application-email'?'/application-email.html':pathname==='/lease-invitation'?'/lease-invitation.html':pathname;
+   const relative=pathname==='/'||pathname==='/home'?'/home.html':pathname==='/faq'?'/faq.html':pathname==='/dashboard'?'/index.html':pathname==='/login'?'/login.html':pathname==='/vacancies'?'/vacancies.html':pathname==='/agents'?'/agents.html':pathname==='/account-access'?'/account-access.html':pathname==='/apply'?'/apply.html':pathname==='/application-status'?'/application-status.html':pathname==='/application-email'?'/application-email.html':pathname==='/lease-invitation'?'/lease-invitation.html':pathname;
    const file=path.resolve(root,'.'+decodeURIComponent(relative));
    if(!file.startsWith(root+path.sep))return json(res,403,{error:'Forbidden.'});
    fs.readFile(file,(error,data)=>{

@@ -77,7 +77,7 @@ const {fixture}=require('./fixture.cjs');
   await page.locator('#add-property').click();
   for(const [key,value] of Object.entries({name:role+' home <test>',area:'Test neighborhood',address:'123 Test Street',price:'1250',beds:'2',baths:'1.5',size:'1000'}))await page.locator('#property-form [name="'+key+'"]').fill(value);
   await page.locator('#property-form [name="available"]').selectOption('true');
-  await page.locator('#property-form button').click();
+  await page.locator('#property-form [type=submit]').click();
   await page.locator('#all-homes h3').filter({hasText:role+' home <test>'}).waitFor();
   await page.reload();
   await page.locator('#portal-title').filter({hasText:role==='admin'?'Admin portal':'Agent portal'}).waitFor();

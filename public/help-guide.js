@@ -51,5 +51,5 @@
   if(/^(hi|hello|hey|help|thank you|thanks)[!. ]*$/.test(q))return response('Hello! I can help you browse current vacancies, prepare an application, find the right contact, or navigate the portal. What would you like to do?');
   return response('I can help with current homes and the site’s application, account, maintenance and payment guidance. Choose a topic below, or use portal Messages for a management response.',[['Message management','/dashboard#messages'],['Browse available homes','/#available']],{topic:'fallback'});
  }
- return {answer,sensitive,suggestions,topics:topics.map(({id,label})=>({id,label}))};
+ return {answer,sensitive,suggestions,topics:topics.map(({id,label})=>({id,label})),faqs:topics.map(({id,label,text,links})=>({id,question:label,answer:text,links}))};
 });
