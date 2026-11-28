@@ -28,4 +28,4 @@ The browser regression suite now includes `tests/design-browser.cjs`. Its solid-
 
 ## November 27 follow-up
 
-The [layout and component audit](LAYOUT-AUDIT.md) extends the original review to Living studio, uploaded photo galleries, all three dashboards and 37 populated dialogs. It corrects narrow-screen photo clipping, obstructing utility controls, unread-notification contrast and long-dialog close/focus behavior. The current suite contains 133 server/API tests, 666 page layout/contrast cases and 409 additional populated-component checks. External delivery and payment adapters remain mocked or disabled in automated tests.
+The [layout and component audit](LAYOUT-AUDIT.md) extends the original review to Living studio, uploaded photo galleries, all three dashboards and 38 populated dialogs. It corrects narrow-screen photo clipping, obstructing utility controls, unread-notification contrast and long-dialog close/focus behavior. The current suite contains 133 server/API tests, 666 page layout/contrast cases and 422 additional populated-component checks. External delivery and payment adapters remain mocked or disabled in automated tests.
