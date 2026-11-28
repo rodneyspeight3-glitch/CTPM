@@ -12,16 +12,20 @@ The visual sweep corrected sidebar/brand contrast, public footer contacts, appli
 
 | Area | Coverage |
 |---|---|
-| Server/API | 100 existing and recent regression tests, using isolated SQLite databases |
+| Server/API | 133 existing and recent regression tests, using isolated SQLite databases |
 | Identity and permissions | Shared login/signup, all three roles, resident isolation, staff/admin-only APIs, private records and links |
 | Property operations | Creation/editing, photographs, availability, assignments, galleries, archive/restore and deletion constraints |
 | Applications | Listed/open-address intake, required and optional fields, private uploads, receipts, reviews, approval/rejection and combined PDF export |
 | Leases | Editable/generated/uploaded agreements, guest private invitations, same-address applicants, signatures, expiry/replacement, alerts and account assignment |
 | Resident and staff workflows | Maintenance, work tracking, appointments, messages, ledger/recorded payments, resources, reports, account recovery and sessions |
 | Email | Saved SMTP administration, connection states, test-email queue controls, privacy and error handling with mock transports |
-| Display and accessibility | 326 public/staff/tenant layout and visible text-contrast cases, including 320px, phone and desktop widths, day/night, three palettes, help and display panels |
+| Display and accessibility | 666 public/staff/tenant layout and visible text-contrast cases, including 320px, phone and desktop widths, day/night, three palettes, help and display panels |
 | Assets | Correct local font MIME, no external asset requests in the design sweep, no browser script errors or page overflow in the checked cases |
 
 Workflow tests use artificial accounts and records with email delivery disabled or mocked. They do not send additional production emails, sign real leases or charge money. Live release verification checks the deployed revision, public pages, contact email, assets, HTTPS and redirects. Existing payment instructions, SMTP credentials, private records and the Render persistent disk are not replaced by this design release.
 
 The browser regression suite now includes `tests/design-browser.cjs`. Its solid-surface text-contrast checks complement the visual review; they are not a certification of every possible uploaded photograph or future content combination. Existing literal teal-color assertions were changed to check themed surfaces so they continue testing dark-mode behavior across the new palettes.
+
+## November 27 follow-up
+
+The [layout and component audit](LAYOUT-AUDIT.md) extends the original review to Living studio, uploaded photo galleries, all three dashboards and 37 populated dialogs. It corrects narrow-screen photo clipping, obstructing utility controls, unread-notification contrast and long-dialog close/focus behavior. The current suite contains 133 server/API tests, 666 page layout/contrast cases and 409 additional populated-component checks. External delivery and payment adapters remain mocked or disabled in automated tests.
